@@ -16,6 +16,7 @@ interface ManagementViewProps {
   onUpdate: (data: any) => void;
   onDelete: (id: string) => void;
   onViewClientProjects?: (client: Client) => void;
+  onViewEmployeeTasks?: (employee: User) => void;
 }
 
 const statusDisplay: Record<'Active' | 'Inactive' | 'Onboarding', string> = {
@@ -53,7 +54,7 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 
-const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, currentUser, onAdd, onUpdate, onDelete, onViewClientProjects }) => {
+const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, currentUser, onAdd, onUpdate, onDelete, onViewClientProjects, onViewEmployeeTasks }) => {
     const isEmployeeView = type === 'employee';
     const items = isEmployeeView ? users.filter(u => u.role === UserRole.EMPLOYEE) : clients;
     const isAdmin = currentUser.role === UserRole.ADMIN;
@@ -117,6 +118,7 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                   <img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full" />
                   {isAdmin && (
                       <ActionMenu>
+                          {onViewEmployeeTasks && <button onClick={() => onViewEmployeeTasks(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les tâches</button>}
                           <button onClick={() => handleOpenEditModal(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
                           <button onClick={() => handleOpenDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
                       </ActionMenu>

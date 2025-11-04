@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, UserRole, View, Project, Client, ChatMessage, Invoice, Task, ProjectStatus } from '../types';
+import { User, UserRole, View, Project, Client, ChatMessage, Invoice, Task, ProjectStatus, PanelNotification, ProjectFile } from '../types';
 import { 
     DashboardIcon, TeamIcon, ProjectsIcon, MessagesIcon, ReportsIcon, BillingIcon, AiIcon, FilesIcon, SettingsIcon, ActivityLogIcon, 
     SwitchRoleIcon, TasksIcon, CalendarIcon, TimeTrackingIcon, PerformanceIcon, ProfileIcon, SupportIcon, DeliverablesIcon, FeedbackIcon,
@@ -18,6 +18,8 @@ interface SidebarProps {
   chatMessages: ChatMessage[];
   invoices: Invoice[];
   tasks: Task[];
+  files: ProjectFile[];
+  panelNotifications: PanelNotification[];
 }
 
 interface NavLinkData {
@@ -52,11 +54,14 @@ const NavLink: React.FC<{ data: NavLinkData; isActive: boolean; isCollapsed: boo
   </button>
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveView, isOpenOnMobile, onCloseMobile, onLogout, projects, clients, chatMessages, invoices, tasks }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveView, isOpenOnMobile, onCloseMobile, onLogout, projects, clients, chatMessages, invoices, tasks, files, panelNotifications }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const getBadgeCount = (view: View): number => {
     if (!currentUser) return 0;
+    
+    const unreadNotifications = panelNotifications.filter(n => !n.read);
+
     switch(view) {
         case 'messages':
         case 'support': {
@@ -79,11 +84,24 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
                     )
                     .map(msg => msg.projectId)
             );
-            return projectsWithUnread.size;
+             const messageNotifsCount = unreadNotifications.filter(n => n.type === 'new-message').length;
+            return projectsWithUnread.size + messageNotifsCount;
         }
-        case 'projects': {
+        case 'projects': { // "Projets & Tâches" for Admin
             if (currentUser.role !== UserRole.ADMIN) return 0;
-            return projects.filter(p => p.status === ProjectStatus.ON_HOLD || p.status === ProjectStatus.NOT_STARTED).length;
+            const relevantNotifsCount = unreadNotifications.filter(n => n.type === 'project-status' || n.type === 'new-file' || n.type === 'new-task').length;
+            const incompleteProjectsCount = projects.filter(p => p.status !== ProjectStatus.COMPLETED).length;
+            const incompleteTasksCount = tasks.filter(t => t.status !== 'Completed').length;
+            return relevantNotifsCount + incompleteProjectsCount + incompleteTasksCount;
+        }
+        case 'my-projects': {
+             if (currentUser.role !== UserRole.EMPLOYEE) return 0;
+            const myIncompleteProjects = projects.filter(p => 
+                p.assignedEmployeeIds.includes(currentUser.id) &&
+                p.status !== ProjectStatus.COMPLETED
+            ).length;
+            const projectNotifsCount = unreadNotifications.filter(n => (n.type === 'project-status' || n.type === 'new-file')).length;
+            return myIncompleteProjects + projectNotifsCount;
         }
         case 'billing': {
             if (currentUser.role !== UserRole.ADMIN) return 0;
@@ -91,7 +109,27 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
         }
         case 'my-tasks': {
             if (currentUser.role !== UserRole.EMPLOYEE) return 0;
-            return tasks.filter(t => t.employeeId === currentUser.id && t.status === 'To Do').length;
+            const newTaskNotifs = unreadNotifications.filter(n => n.type === 'new-task').length;
+            const incompleteTasksCount = tasks.filter(t => t.employeeId === currentUser.id && t.status !== 'Completed').length;
+            return incompleteTasksCount + newTaskNotifs;
+        }
+        case 'reports': {
+            if (currentUser.role !== UserRole.ADMIN) return 0;
+            const feedbackNotifs = unreadNotifications.filter(n => n.type === 'new-feedback').length;
+            return feedbackNotifs;
+        }
+        case 'client-billing': {
+            if (currentUser.role !== UserRole.CLIENT) return 0;
+            const myClientProfile = clients.find(c => c.contactEmail === currentUser.email);
+            if (!myClientProfile) return 0;
+            return invoices.filter(i => 
+                i.clientId === myClientProfile.id &&
+                (i.status === 'Sent' || i.status === 'Overdue')
+            ).length;
+        }
+        case 'deliverables': {
+             // The total count was confusing. Badge removed unless a clear "unread" state is added for files later.
+            return 0;
         }
         default:
             return 0;
@@ -101,7 +139,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
   const adminLinks: NavLinkData[] = [
     { view: 'dashboard', label: 'Tableau de bord', icon: DashboardIcon },
     { view: 'projects', label: 'Projets & Tâches', icon: ProjectsIcon },
-    { view: 'team', label: 'Équipe & Rôles', icon: TeamIcon },
+    { view: 'team', label: 'Équipe & Clients', icon: TeamIcon },
     { view: 'messages', label: 'Messages', icon: MessagesIcon },
     { view: 'reports', label: 'Rapports & Perf.', icon: ReportsIcon },
     { view: 'billing', label: 'Facturation', icon: BillingIcon },
@@ -154,15 +192,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
   return (
     <aside className={`
       fixed inset-y-0 left-0 z-50
-      md:static md:z-auto md:inset-y-auto md:h-screen
+      md:static md:z-auto md:h-screen
       flex flex-col bg-slate-900/60 backdrop-blur-2xl border-r border-[var(--border-color)] 
-      transition-all duration-500 ease-in-out
-      ${isCollapsed ? 'w-20' : 'w-64'}
+      transition-transform duration-300 ease-in-out
+      w-64
+      ${isCollapsed ? 'md:w-20' : 'md:w-64'}
       ${isOpenOnMobile ? 'translate-x-0' : '-translate-x-full'}
       md:translate-x-0
     `}>
         <div className={`flex items-center justify-between flex-shrink-0 h-20 px-4 border-b border-[var(--border-color)]`}>
-            <h1 className={`font-display text-3xl font-bold tracking-wider text-white transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+            <h1 className={`font-display text-3xl font-bold tracking-wider text-white transition-all duration-300 ease-in-out ${isCollapsed && !isOpenOnMobile ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
                 Tely<span className="text-telya-green text-glow">a</span>
             </h1>
             <button 
@@ -181,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
                 key={link.view}
                 data={link}
                 isActive={activeView === link.view}
-                isCollapsed={isCollapsed}
+                isCollapsed={isCollapsed && !isOpenOnMobile}
                 onClick={() => handleLinkClick(link.view)}
                 badgeCount={badgeCount}
               />
@@ -189,19 +228,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
         })}
       </nav>
       <div className="p-4 mt-auto border-t border-[var(--border-color)]">
-        <div className={`flex items-center space-x-3 mb-4 ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className={`flex items-center space-x-3 mb-4 ${isCollapsed && !isOpenOnMobile ? 'justify-center' : ''}`}>
             <img src={currentUser.avatar} alt="User Avatar" className="w-10 h-10 rounded-full flex-shrink-0" />
-            <div className={`text-left overflow-hidden flex-1 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
+            <div className={`text-left overflow-hidden flex-1 transition-opacity duration-300 ${isCollapsed && !isOpenOnMobile ? 'opacity-0 w-0' : 'opacity-100'}`}>
                 <p className="font-semibold text-sm text-white truncate">{currentUser.name}</p>
                 <p className="text-xs text-slate-400">{roleDisplayNames[currentUser.role]}</p>
             </div>
         </div>
         <button
             onClick={onLogout}
-            className={`w-full flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+            className={`w-full flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors ${isCollapsed && !isOpenOnMobile ? 'justify-center' : ''}`}
         >
             <LogoutIcon className="w-5 h-5 flex-shrink-0"/>
-            <span className={`ml-2 whitespace-nowrap transition-opacity duration-300 ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>Se déconnecter</span>
+            <span className={`ml-2 whitespace-nowrap transition-opacity duration-300 ${isCollapsed && !isOpenOnMobile ? 'opacity-0' : 'opacity-100'}`}>Se déconnecter</span>
         </button>
       </div>
     </aside>

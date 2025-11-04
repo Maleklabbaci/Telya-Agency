@@ -129,11 +129,11 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
       {/* Conversation List */}
       <div className={`
         w-full md:w-1/3 md:flex flex-col h-full bg-slate-800/50 
-        transition-transform duration-300 ease-in-out
+        transition-transform duration-300 ease-in-out absolute md:static top-0 left-0
         ${selectedProjectId ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
         md:border-r md:border-white/10
       `}>
@@ -152,8 +152,8 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
                       onClick={() => handleConversationSelect(project.id)}
                       className={`w-full text-left p-4 border-b border-slate-900/50 hover:bg-slate-700/50 transition-colors duration-200 relative ${isSelected ? 'bg-slate-700/60' : ''}`}
                     >
-                      {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-full shadow-[0_0_10px_theme(colors.green.500)]"></div>}
-                      {isUnread && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_theme(colors.green.500)]"></div>}
+                      {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-telya-green rounded-r-full shadow-[0_0_10px_theme(colors.telya.green)]"></div>}
+                      {isUnread && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-telya-green rounded-full shadow-[0_0_8px_theme(colors.telya.green)]"></div>}
                       <div className="flex justify-between items-center mb-1">
                         <p className={`truncate pr-8 ${isUnread ? 'font-bold text-white' : 'font-semibold text-slate-200'}`}>{project.name}</p>
                         {lastMessage && <p className="text-xs text-slate-400 flex-shrink-0 ml-2">{new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
@@ -182,13 +182,13 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
       {/* Chat View */}
       <div className={`
         absolute top-0 left-0 w-full h-full md:static md:w-2/3 flex flex-col
-        transition-transform duration-300 ease-in-out
+        transition-transform duration-300 ease-in-out bg-slate-900/30
         ${selectedProjectId ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
       `}>
         {selectedProject ? (
-          <div className="flex flex-col h-full bg-slate-900/30">
+          <div className="flex flex-col h-full">
             <div className="p-4 md:p-5 border-b border-white/10 flex items-center gap-4">
-               <button onClick={() => setSelectedProjectId(null)} className="md:hidden text-slate-300 hover:text-white">
+               <button onClick={() => setSelectedProjectId(null)} className="md:hidden text-slate-300 hover:text-white p-1">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
               <div>
@@ -196,27 +196,28 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
                 <p className="text-sm text-slate-400">{getClientById(selectedProject.clientId)?.companyName}</p>
               </div>
             </div>
-            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-              {selectedProjectMessages.map(message => {
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              {selectedProjectMessages.map((message, index) => {
                 const sender = getUserById(message.senderId);
                 const isCurrentUser = message.senderId === currentUser.id;
+                const prevMessage = selectedProjectMessages[index - 1];
+                const showAvatar = !prevMessage || prevMessage.senderId !== message.senderId;
+
                 return (
                   <div key={message.id} className={`flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                     {!isCurrentUser && sender && (
-                      <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                      <img src={sender.avatar} alt={sender.name} className={`w-8 h-8 rounded-full flex-shrink-0 transition-opacity duration-300 ${showAvatar ? 'opacity-100' : 'opacity-0'}`} />
                     )}
-                    <div className="max-w-xl">
-                      <div className={`px-4 py-3 rounded-2xl ${isCurrentUser ? 'bg-green-600 text-white rounded-br-lg' : 'bg-slate-700/50 text-slate-200 rounded-bl-lg'}`}>
+                    <div className="max-w-md md:max-w-xl">
+                       {showAvatar && !isCurrentUser && (
+                          <p className="text-xs text-slate-400 mb-1 ml-2 font-semibold">{sender?.name?.split(' ')[0]}</p>
+                       )}
+                      <div className={`px-4 py-3 rounded-2xl ${isCurrentUser ? 'bg-telya-green text-white rounded-br-lg' : 'bg-slate-700/50 text-slate-200 rounded-bl-lg'}`}>
                         <MessageWithMentions text={message.text} allUsers={users} />
                       </div>
-                      <div className={`mt-1 px-1 text-xs text-slate-400 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                        {!isCurrentUser && <span className="font-semibold">{sender?.name?.split(' ')[0]}</span>}
-                        {' '}
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
                     </div>
-                    {isCurrentUser && sender && (
-                      <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                     {isCurrentUser && sender && (
+                      <img src={sender.avatar} alt={sender.name} className={`w-8 h-8 rounded-full flex-shrink-0 transition-opacity duration-300 ${showAvatar ? 'opacity-100' : 'opacity-0'}`} />
                     )}
                   </div>
                 );
@@ -250,7 +251,7 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
                 />
                 <button
                   type="submit"
-                  className="bg-green-600 text-white rounded-full p-3 hover:bg-green-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
+                  className="bg-telya-green text-white rounded-full p-3 hover:bg-emerald-500 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed shadow-lg shadow-telya-green/20"
                   disabled={!newMessage.trim()}
                   aria-label="Envoyer le message"
                 >

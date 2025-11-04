@@ -1,6 +1,6 @@
 import React from 'react';
 import { Client, Project, User, ProjectStatus } from '../types';
-import { ArrowLeftIcon, BriefcaseIcon } from './icons';
+import { ArrowLeftIcon, BriefcaseIcon, CheckCircleIcon, UsersIcon } from './icons';
 
 interface ClientProjectsOverviewProps {
   client: Client;
@@ -18,7 +18,7 @@ const statusColors: { [key in ProjectStatus]: string } = {
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-slate-900/30 p-6 rounded-2xl flex items-center space-x-4 border border-white/10">
-        <div className="bg-green-500/10 p-3 rounded-full text-green-400">
+        <div className="bg-telya-green/10 p-3 rounded-full text-telya-green">
             {icon}
         </div>
         <div>
@@ -37,18 +37,18 @@ const ClientProjectsOverview: React.FC<ClientProjectsOverviewProps> = ({ client,
   const teamMembers = users.filter(u => client.assignedEmployeeIds.includes(u.id));
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
         <div className="flex items-center space-x-4">
-            <img src={client.logo} alt={client.companyName} className="w-16 h-16 p-2 object-contain bg-white rounded-full" />
+            <img src={client.logo} alt={client.companyName} className="w-12 h-12 md:w-16 md:h-16 p-2 object-contain bg-white rounded-full" />
             <div>
-                <h2 className="font-display text-4xl tracking-wide text-white">{client.companyName}</h2>
+                <h2 className="font-display text-3xl md:text-4xl tracking-wide text-white">{client.companyName}</h2>
                 <p className="text-slate-400">Aperçu des projets</p>
             </div>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center px-4 py-2 rounded-lg bg-slate-700 text-slate-200 hover:bg-slate-600 font-semibold transition-colors"
+          className="flex-shrink-0 w-full md:w-auto flex items-center justify-center px-4 py-2 rounded-lg bg-slate-700 text-slate-200 hover:bg-slate-600 font-semibold transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2" />
           Retour aux clients
@@ -56,11 +56,11 @@ const ClientProjectsOverview: React.FC<ClientProjectsOverviewProps> = ({ client,
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard title="Total Projets" value={totalProjects} icon={<BriefcaseIcon className="h-6 w-6" />} />
         <StatCard title="En cours" value={inProgressProjects} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12A8 8 0 1013 5.5" /></svg>} />
-        <StatCard title="Terminés" value={completedProjects} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Membres de l'équipe" value={teamMembers.length} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
+        <StatCard title="Terminés" value={completedProjects} icon={<CheckCircleIcon className="h-6 w-6" />} />
+        <StatCard title="Membres" value={teamMembers.length} icon={<UsersIcon className="h-6 w-6" />} />
       </div>
 
       {/* Projects List */}
@@ -81,7 +81,7 @@ const ClientProjectsOverview: React.FC<ClientProjectsOverviewProps> = ({ client,
               {clientProjects.map(project => {
                 const team = users.filter(u => project.assignedEmployeeIds.includes(u.id));
                 return (
-                  <tr key={project.id} className="border-b border-slate-700 hover:bg-green-500/5 transition-colors duration-200">
+                  <tr key={project.id} className="border-b border-slate-700 hover:bg-telya-green/5 transition-colors duration-200">
                     <td className="px-6 py-4 font-semibold text-white">{project.name}</td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColors[project.status]}`}>

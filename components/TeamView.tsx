@@ -1,13 +1,16 @@
 
 import React, { useState } from 'react';
-import { User, Client } from '../types';
+import { User, Client, Task, Project } from '../types';
 import ManagementView from './ManagementView';
 import { UsersIcon, BriefcaseIcon } from './icons';
+import EmployeeTasksModal from './EmployeeTasksModal';
 
 interface TeamViewProps {
   users: User[];
   clients: Client[];
   currentUser: User;
+  tasks: Task[];
+  projects: Project[];
   onAddUser: (data: any) => void;
   onUpdateUser: (data: any) => void;
   onDeleteUser: (id: string) => void;
@@ -19,6 +22,19 @@ interface TeamViewProps {
 
 const TeamView: React.FC<TeamViewProps> = (props) => {
     const [activeTab, setActiveTab] = useState<'employees' | 'clients'>('employees');
+    const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
+    const [selectedEmployeeForTasks, setSelectedEmployeeForTasks] = useState<User | null>(null);
+
+    const handleOpenTasksModal = (employee: User) => {
+        setSelectedEmployeeForTasks(employee);
+        setIsTasksModalOpen(true);
+    };
+
+    const handleCloseTasksModal = () => {
+        setIsTasksModalOpen(false);
+        setSelectedEmployeeForTasks(null);
+    };
+
 
     return (
         <div className="p-6 md:p-8 flex flex-col h-full">
@@ -63,6 +79,7 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                         onAdd={props.onAddUser}
                         onUpdate={props.onUpdateUser}
                         onDelete={props.onDeleteUser}
+                        onViewEmployeeTasks={handleOpenTasksModal}
                     />
                 ) : (
                     <ManagementView 
@@ -77,6 +94,14 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                     />
                 )}
             </div>
+
+            <EmployeeTasksModal
+                isOpen={isTasksModalOpen}
+                onClose={handleCloseTasksModal}
+                employee={selectedEmployeeForTasks}
+                tasks={props.tasks}
+                projects={props.projects}
+            />
         </div>
     );
 };

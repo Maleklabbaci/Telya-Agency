@@ -20,14 +20,14 @@ const Header: React.FC<HeaderProps> = ({ title, onToggleMobileNav, currentUser, 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="relative z-20 flex-shrink-0 flex items-center h-20 px-6 bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-3xl">
+    <header className="relative z-20 flex-shrink-0 flex items-center h-20 px-4 md:px-6 bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-2xl">
       <button onClick={onToggleMobileNav} className="md:hidden text-slate-300 hover:text-white mr-4">
         <MenuIcon className="w-6 h-6" />
       </button>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
         <h2 className="font-display text-2xl md:text-3xl tracking-wide text-white truncate">{title}</h2>
       </div>
-      <div className="ml-auto flex items-center space-x-4">
+      <div className="ml-auto flex items-center space-x-2 md:space-x-4">
          <div className="relative">
             <button onClick={onToggleNotificationsPanel} className="relative text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-700/50 transition-colors">
                 <BellIcon className="w-6 h-6" />

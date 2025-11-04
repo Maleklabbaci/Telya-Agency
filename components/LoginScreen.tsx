@@ -1,8 +1,6 @@
-
-
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { ShieldCheckIcon, UsersIcon, ClientsIcon, ArrowUturnLeftIcon } from './icons';
+import { ShieldCheckIcon, BriefcaseIcon, ClientsIcon, ArrowUturnLeftIcon } from './icons';
 
 interface LoginScreenProps {
     users: User[];
@@ -16,7 +14,7 @@ const roleDetails: { [key in UserRole]: { icon: React.ReactNode; name: string; d
         description: "Gérez les employés, les clients et les projets.",
     },
     [UserRole.EMPLOYEE]: {
-        icon: <UsersIcon className="w-10 h-10" />,
+        icon: <BriefcaseIcon className="w-10 h-10" />,
         name: 'Employé',
         description: 'Accédez à vos projets et clients assignés.',
     },
@@ -52,8 +50,8 @@ const RoleCard: React.FC<{
             `}>
                 {details.icon}
             </div>
-            <h3 className={`font-display text-2xl mb-1 text-white`}>{details.name}</h3>
-            <p className="text-slate-400 text-sm h-10">{details.description}</p>
+            <h3 className={`font-display text-2xl mb-1 text-white font-bold`}>{details.name}</h3>
+            <p className="text-slate-400 text-sm h-16 flex items-center justify-center">{details.description}</p>
         </div>
     );
 };
@@ -125,18 +123,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
 
     return (
         <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 aurora-bg">
-           <div className="w-full max-w-4xl mx-auto relative z-10">
+           <div className="w-full max-w-3xl mx-auto relative z-10">
                 <div className="text-center mb-10 animate-fadeInUp">
-                    <h1 className="font-display text-5xl md:text-7xl tracking-wide text-white">
+                    <h1 className="font-display text-5xl md:text-6xl tracking-wide text-white">
                         Bienvenue sur <span className="text-telya-green text-glow">Telya</span>
                     </h1>
-                    <p className="text-slate-300 mt-4 text-lg max-w-2xl mx-auto transition-all duration-300">
+                    <p className="text-slate-300 mt-4 text-md md:text-lg max-w-2xl mx-auto transition-all duration-300">
                        {getTitle()}
                     </p>
                 </div>
                 
-                <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/10 p-8 transition-all duration-500 animate-fadeInUp animation-delay-200">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 transition-all duration-500 animate-fadeInUp animation-delay-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                        {(Object.keys(roleDetails) as UserRole[]).map(role => (
                             <RoleCard
                                 key={role}

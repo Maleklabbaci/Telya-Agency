@@ -85,9 +85,8 @@ const ProjectChatView: React.FC<ProjectChatViewProps> = ({ project, messages, cu
   const sortedMessages = [...messages].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   return (
-    <div className="p-6 md:p-8 flex flex-col h-full">
-      <div className="flex-shrink-0 flex items-center justify-between mb-6">
-        <div>
+    <div className="p-4 md:p-6 lg:p-8 flex flex-col h-full">
+      <div className="flex-shrink-0 mb-6">
            <button
               onClick={onBack}
               className="flex items-center text-sm text-slate-400 hover:text-white font-semibold transition-colors mb-2"
@@ -95,32 +94,32 @@ const ProjectChatView: React.FC<ProjectChatViewProps> = ({ project, messages, cu
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Retour
             </button>
-          <h2 className="font-display text-4xl tracking-wide text-white">{project.name}</h2>
-        </div>
+          <h2 className="font-display text-3xl md:text-4xl tracking-wide text-white">{project.name}</h2>
       </div>
 
       <div className="flex-1 bg-slate-900/30 rounded-2xl shadow-lg border border-white/10 flex flex-col overflow-hidden">
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-          {sortedMessages.map(message => {
+        <div className="flex-1 p-4 md:p-6 space-y-4 overflow-y-auto">
+          {sortedMessages.map((message, index) => {
             const sender = getUserById(message.senderId);
             const isCurrentUser = message.senderId === currentUser.id;
+            const prevMessage = sortedMessages[index - 1];
+            const showAvatar = !prevMessage || prevMessage.senderId !== message.senderId;
+
             return (
               <div key={message.id} className={`flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                 {!isCurrentUser && sender && (
-                  <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                  <img src={sender.avatar} alt={sender.name} className={`w-8 h-8 rounded-full flex-shrink-0 transition-opacity duration-300 ${showAvatar ? 'opacity-100' : 'opacity-0'}`} />
                 )}
-                <div className={`max-w-xl`}>
-                  <div className={`px-4 py-3 rounded-2xl ${isCurrentUser ? 'bg-green-600 text-white rounded-br-lg' : 'bg-slate-700/50 text-slate-200 rounded-bl-lg'}`}>
+                <div className="max-w-md md:max-w-xl">
+                   {showAvatar && !isCurrentUser && (
+                      <p className="text-xs text-slate-400 mb-1 ml-2 font-semibold">{sender?.name?.split(' ')[0]}</p>
+                   )}
+                  <div className={`px-4 py-3 rounded-2xl ${isCurrentUser ? 'bg-telya-green text-white rounded-br-lg' : 'bg-slate-700/50 text-slate-200 rounded-bl-lg'}`}>
                     <MessageWithMentions text={message.text} allUsers={users} />
                   </div>
-                   <div className={`mt-1 px-1 text-xs text-slate-400 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                      {!isCurrentUser && <span className="font-semibold">{sender?.name?.split(' ')[0]}</span>}
-                      {' '}
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
                 </div>
                  {isCurrentUser && sender && (
-                  <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                  <img src={sender.avatar} alt={sender.name} className={`w-8 h-8 rounded-full flex-shrink-0 transition-opacity duration-300 ${showAvatar ? 'opacity-100' : 'opacity-0'}`} />
                 )}
               </div>
             );
@@ -155,7 +154,7 @@ const ProjectChatView: React.FC<ProjectChatViewProps> = ({ project, messages, cu
             />
             <button
               type="submit"
-              className="bg-green-600 text-white rounded-full p-3 hover:bg-green-700 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed shadow-lg shadow-green-600/20"
+              className="bg-telya-green text-white rounded-full p-3 hover:bg-emerald-500 transition-colors disabled:bg-slate-600 disabled:cursor-not-allowed shadow-lg shadow-telya-green/20"
               disabled={!newMessage.trim()}
               aria-label="Envoyer le message"
             >

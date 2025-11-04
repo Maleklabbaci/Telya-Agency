@@ -1,3 +1,4 @@
+
 import { User, Client, UserRole, Project, ProjectStatus, ChatMessage, TimeLog, ActivityLog, Invoice, ProjectFile, Task, Feedback, PanelNotification } from './types';
 
 export const MOCK_USERS: User[] = [
@@ -323,7 +324,7 @@ export const MOCK_FILES: ProjectFile[] = [
 ];
 
 export const MOCK_TASKS: Task[] = [
-    { id: 'task-1', projectId: 'proj-1', employeeId: 'user-emp-1', title: 'Finaliser les wireframes de la page d\'accueil', status: 'In Progress'},
+    { id: 'task-1', projectId: 'proj-1', employeeId: 'user-emp-1', title: 'Finaliser les wireframes de la page d\'accueil', status: 'To Do'},
     { id: 'task-2', projectId: 'proj-1', employeeId: 'user-emp-2', title: 'Mettre en place la base de données', status: 'Completed'},
     { id: 'task-3', projectId: 'proj-1', employeeId: 'user-emp-2', title: 'Développer le composant de connexion', status: 'To Do'},
     { id: 'task-4', projectId: 'proj-3', employeeId: 'user-emp-3', title: 'Planifier le calendrier de contenu pour Instagram', status: 'To Do'},
@@ -342,35 +343,4 @@ export const MOCK_FEEDBACK: Feedback[] = [
     }
 ];
 
-export const MOCK_PANEL_NOTIFICATIONS: PanelNotification[] = [
-    {
-        id: 'notif-1',
-        userId: 'user-admin-1',
-        projectId: 'proj-1',
-        type: 'new-message',
-        title: "Nouveau message d'Alice",
-        description: "Les fichiers Figma sont maintenant disponibles...",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-        read: false,
-    },
-    {
-        id: 'notif-2',
-        userId: 'user-admin-1',
-        projectId: 'proj-2',
-        type: 'project-status',
-        title: 'Projet Terminé',
-        description: 'La campagne SEO de Quantum Corp est terminée.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        read: false,
-    },
-    {
-        id: 'notif-3',
-        userId: 'user-admin-1',
-        projectId: 'proj-4',
-        type: 'project-status',
-        title: 'Projet en Attente',
-        description: "L'app mobile Quantum est maintenant en attente.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48),
-        read: true,
-    },
-];
+export const MOCK_PANEL_NOTIFICATIONS: PanelNotification[] = [];

@@ -81,7 +81,7 @@ export interface PanelNotification {
     id: string;
     userId: string; // The user who should see this notification
     projectId: string;
-    type: 'project-status' | 'new-message';
+    type: 'project-status' | 'new-message' | 'new-task' | 'new-file' | 'new-feedback';
     title: string;
     description: string;
     timestamp: Date;

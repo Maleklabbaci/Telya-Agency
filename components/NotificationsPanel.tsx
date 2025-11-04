@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProjectsIcon, EnvelopeIcon } from './icons';
+import { ProjectsIcon, EnvelopeIcon, TasksIcon, FilesIcon, FeedbackIcon } from './icons';
 import { PanelNotification } from '../types';
 
 const timeSince = (date: Date): string => {
@@ -23,6 +23,9 @@ const NotificationIcon: React.FC<{ type: PanelNotification['type'] }> = ({ type 
     switch (type) {
         case 'project-status': return <ProjectsIcon className="w-5 h-5" />;
         case 'new-message': return <EnvelopeIcon className="w-5 h-5" />;
+        case 'new-task': return <TasksIcon className="w-5 h-5" />;
+        case 'new-file': return <FilesIcon className="w-5 h-5" />;
+        case 'new-feedback': return <FeedbackIcon className="w-5 h-5" />;
         default: return null;
     }
 };
@@ -65,7 +68,10 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ notifications, 
                                 <div className="flex items-start space-x-4">
                                     <div className={`mt-1 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                                         notification.type === 'project-status' ? 'bg-blue-500/10 text-blue-400' :
-                                        'bg-purple-500/10 text-purple-400'
+                                        notification.type === 'new-message' ? 'bg-purple-500/10 text-purple-400' :
+                                        notification.type === 'new-task' ? 'bg-teal-500/10 text-teal-400' :
+                                        notification.type === 'new-file' ? 'bg-orange-500/10 text-orange-400' :
+                                        'bg-amber-500/10 text-amber-400'
                                     }`}>
                                         <NotificationIcon type={notification.type} />
                                     </div>

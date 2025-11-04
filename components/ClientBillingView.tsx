@@ -1,11 +1,13 @@
-import React from 'react';
-import { Invoice, Client, User } from '../types';
+import React, { useState } from 'react';
+import { Invoice, Client, User, Project } from '../types';
 import { BillingIcon } from './icons';
+import InvoiceDetailsModal from './InvoiceDetailsModal';
 
 interface ClientBillingViewProps {
     currentUser: User;
     invoices: Invoice[];
     clients: Client[];
+    projects: Project[];
 }
 
 type InvoiceStatus = 'Paid' | 'Sent' | 'Draft' | 'Overdue';
@@ -24,23 +26,21 @@ const statusLabels: Record<InvoiceStatus, string> = {
     'Overdue': 'En retard',
 };
 
-const simulateFileDownload = (filename: string, content: string) => {
-    const element = document.createElement('a');
-    const file = new Blob([content], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = filename;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-};
+const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invoices, clients, projects }) => {
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invoices, clients }) => {
     const myClientProfile = clients.find(c => c.contactEmail === currentUser.email);
     if (!myClientProfile) {
         return <div className="p-8 text-center">Profil client non trouvé.</div>;
     }
     
     const myInvoices = invoices.filter(inv => inv.clientId === myClientProfile.id && inv.status !== 'Draft');
+
+    const handleViewDetails = (invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setDetailsModalOpen(true);
+    };
 
     return (
         <div className="p-6 md:p-8">
@@ -72,9 +72,9 @@ const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invo
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button 
-                                                onClick={() => simulateFileDownload(`facture-${invoice.id}.txt`, `Détails de la facture ${invoice.id.toUpperCase()}\n\nClient: ${myClientProfile.companyName}\nMontant: ${invoice.amount} DZD\nDate d'échéance: ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}`)} 
+                                                onClick={() => handleViewDetails(invoice)} 
                                                 className="font-semibold text-telya-green hover:text-telya-green/80 text-xs">
-                                                Télécharger PDF
+                                                Voir la facture
                                             </button>
                                         </td>
                                     </tr>
@@ -90,6 +90,14 @@ const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invo
                     <p className="mt-1">Vos factures apparaîtront ici dès qu'elles seront émises.</p>
                 </div>
             )}
+
+            <InvoiceDetailsModal
+                isOpen={detailsModalOpen}
+                onClose={() => setDetailsModalOpen(false)}
+                invoice={selectedInvoice}
+                client={myClientProfile}
+                projectName={selectedInvoice?.projectId ? projects.find(p => p.id === selectedInvoice.projectId)?.name : undefined}
+            />
         </div>
     );
 };

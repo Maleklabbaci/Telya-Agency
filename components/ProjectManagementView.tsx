@@ -1,10 +1,13 @@
 
 
+
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Project, User, Client, UserRole, ProjectStatus, TimeLog } from '../types';
+import { Project, User, Client, UserRole, ProjectStatus, TimeLog, Task } from '../types';
 import ConfirmationModal from './ConfirmationModal';
 import ProjectForm from './forms/ProjectForm';
-import { DotsVerticalIcon, PlusIcon, ClientsIcon, ProjectsIcon, ViewGridIcon, ViewColumnsIcon, ClockIcon, RefreshIcon } from './icons';
+import TaskForm from './forms/TaskForm';
+import { DotsVerticalIcon, PlusIcon, ClientsIcon, ProjectsIcon, ViewGridIcon, ViewColumnsIcon, ClockIcon, RefreshIcon, TasksIcon } from './icons';
 import KanbanBoard from './KanbanBoard';
 
 interface ProjectManagementViewProps {
@@ -13,19 +16,33 @@ interface ProjectManagementViewProps {
   clients: Client[];
   currentUser: User;
   timeLogs: TimeLog[];
+  tasks: Task[];
   onAdd: (data: any) => void;
   onUpdate: (data: any) => void;
   onDelete: (id: string) => void;
   onViewDetails: (project: Project) => void;
   onManualRefresh: () => void;
+  onAddTask: (data: Omit<Task, 'id'>) => void;
+  onUpdateTask: (task: Task) => void;
+  onDeleteTask: (id: string) => void;
 }
 
-const statusColors: { [key in ProjectStatus]: string } = {
+type TaskStatus = 'To Do' | 'In Progress' | 'Completed';
+
+const projectStatusColors: { [key in ProjectStatus]: string } = {
     [ProjectStatus.COMPLETED]: 'bg-green-500/20 text-green-400',
     [ProjectStatus.IN_PROGRESS]: 'bg-blue-500/20 text-blue-400',
     [ProjectStatus.ON_HOLD]: 'bg-yellow-500/20 text-yellow-400',
     [ProjectStatus.NOT_STARTED]: 'bg-slate-500/20 text-slate-400',
 };
+
+const taskStatusStyles: Record<TaskStatus, string> = {
+    'To Do': 'bg-slate-500/20 text-slate-300',
+    'In Progress': 'bg-blue-500/20 text-blue-400',
+    'Completed': 'bg-green-500/20 text-green-400',
+};
+
+const taskStatusOptions: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 
 const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -56,40 +73,62 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 
-const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects, users, clients, currentUser, timeLogs, onAdd, onUpdate, onDelete, onViewDetails, onManualRefresh }) => {
+const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects, users, clients, currentUser, timeLogs, tasks, onAdd, onUpdate, onDelete, onViewDetails, onManualRefresh, onAddTask, onUpdateTask, onDeleteTask }) => {
     const isAdmin = currentUser.role === UserRole.ADMIN;
 
-    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'projects' | 'tasks'>('projects');
+
+    const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
+    const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    
+    const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+    const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
     const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const getClientById = (id: string) => clients.find(c => c.id === id);
-    const getEmployeesByIds = (ids: string[]) => users.filter(u => ids.includes(u.id));
+    const getClientName = (id: string) => clients.find(c => c.id === id)?.companyName || 'Inconnu';
 
-    const handleOpenAddModal = () => {
+    const handleOpenAddProject = () => {
         setSelectedProject(null);
-        setIsFormModalOpen(true);
+        setIsProjectFormOpen(true);
+    };
+    const handleOpenEditProject = (project: Project) => {
+        setSelectedProject(project);
+        setIsProjectFormOpen(true);
+    };
+    const handleOpenDeleteProject = (project: Project) => {
+        setSelectedProject(project);
+        setIsDeleteProjectModalOpen(true);
     };
 
-    const handleOpenEditModal = (project: Project) => {
-        setSelectedProject(project);
-        setIsFormModalOpen(true);
+    const handleOpenAddTask = () => {
+        setSelectedTask(null);
+        setIsTaskFormOpen(true);
     };
 
-    const handleOpenDeleteModal = (project: Project) => {
-        setSelectedProject(project);
-        setIsDeleteModalOpen(true);
+    const handleOpenEditTask = (task: Task) => {
+        setSelectedTask(task);
+        setIsTaskFormOpen(true);
+    };
+    
+    const handleOpenDeleteTask = (task: Task) => {
+        setSelectedTask(task);
+        setIsDeleteTaskModalOpen(true);
     };
 
     const handleCloseModals = () => {
-        setIsFormModalOpen(false);
-        setIsDeleteModalOpen(false);
+        setIsProjectFormOpen(false);
+        setIsDeleteProjectModalOpen(false);
         setSelectedProject(null);
+        setIsTaskFormOpen(false);
+        setIsDeleteTaskModalOpen(false);
+        setSelectedTask(null);
     };
-
-    const handleSave = (data: Omit<Project, 'id'>) => {
+    
+    const handleSaveProject = (data: Omit<Project, 'id'>) => {
         if (selectedProject) {
             onUpdate({ ...selectedProject, ...data });
         } else {
@@ -98,176 +137,218 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
         handleCloseModals();
     };
 
-    const handleDelete = () => {
+    const handleDeleteProject = () => {
         if (selectedProject) {
             onDelete(selectedProject.id);
         }
         handleCloseModals();
     };
 
-    const handleRefreshClick = () => {
-        if (isRefreshing) return;
-
-        setIsRefreshing(true);
-        onManualRefresh(); 
-        
-        setTimeout(() => {
-            setIsRefreshing(false);
-        }, 1500);
+    const handleSaveTask = (data: Omit<Task, 'id'>) => {
+        if (selectedTask) {
+            onUpdateTask({ ...selectedTask, ...data });
+        } else {
+            onAddTask(data);
+        }
+        handleCloseModals();
     };
 
+    const handleDeleteTask = () => {
+        if (selectedTask) {
+            onDeleteTask(selectedTask.id);
+        }
+        handleCloseModals();
+    };
+
+    const handleRefreshClick = () => {
+        setIsRefreshing(true);
+        onManualRefresh();
+        setTimeout(() => setIsRefreshing(false), 1000);
+    };
+
+    // FIX: Typed the initial value for `reduce` to ensure `tasksByProject` is correctly typed as a record of task arrays. This prevents TypeScript from inferring it as `unknown`, which caused the subsequent `.map` call to fail.
+    const tasksByProject = tasks.reduce((acc, task) => {
+        if (!acc[task.projectId]) {
+            acc[task.projectId] = [];
+        }
+        acc[task.projectId].push(task);
+        return acc;
+    }, {} as Record<string, Task[]>);
+
+    const employees = users.filter(u => u.role === UserRole.EMPLOYEE);
+    
     return (
-        <div className="p-6 md:p-8 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="font-display text-3xl tracking-wide text-white">
-                    Projets
-                </h2>
-                <div className="flex items-center gap-4">
-                     <button
-                        onClick={handleRefreshClick}
-                        disabled={isRefreshing}
-                        className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white transition-colors disabled:cursor-wait disabled:text-telya-green"
-                        aria-label="Rafraîchir les données"
-                    >
-                        <RefreshIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    </button>
-                    <div className="flex items-center space-x-1 p-1 bg-slate-800/50 rounded-lg">
+        <div className="p-4 md:p-8 flex flex-col h-full">
+            <div className="flex-shrink-0">
+                <div className="border-b border-slate-700">
+                    <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                         <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:text-white'}`}
-                            aria-label="Vue grille"
+                            onClick={() => setActiveTab('projects')}
+                            className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'projects' ? 'border-telya-green text-telya-green' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
                         >
-                            <ViewGridIcon className="w-5 h-5" />
+                            <ProjectsIcon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === 'projects' ? 'text-telya-green' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                            <span>Projets</span>
                         </button>
                         <button
-                            onClick={() => setViewMode('kanban')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:text-white'}`}
-                            aria-label="Vue Kanban"
+                            onClick={() => setActiveTab('tasks')}
+                            className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'tasks' ? 'border-telya-green text-telya-green' : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500'}`}
                         >
-                            <ViewColumnsIcon className="w-5 h-5" />
+                            <TasksIcon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === 'tasks' ? 'text-telya-green' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                            <span>Tâches</span>
                         </button>
-                    </div>
-                    {isAdmin && (
-                        <button onClick={handleOpenAddModal} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
-                            <PlusIcon className="w-5 h-5 mr-2" />
-                            Nouveau Projet
-                        </button>
-                    )}
+                    </nav>
                 </div>
             </div>
-            
-            <div className={` ${viewMode === 'kanban' ? 'flex-1 overflow-hidden -mx-6 md:-mx-8 -mb-6 md:-mb-8' : 'p-1 md:p-0'}`}>
-                 {projects.length > 0 ? (
-                    viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                            {projects.map((project, index) => {
-                                const client = getClientById(project.clientId);
-                                const team = getEmployeesByIds(project.assignedEmployeeIds);
-                                const projectTimeLogs = timeLogs.filter(log => log.projectId === project.id);
-                                const totalHours = projectTimeLogs.reduce((acc, log) => acc + log.hours, 0);
 
-                                let progressPercent = 0;
-                                const assumedTargetHours = 80;
-                                if (project.status === ProjectStatus.COMPLETED) {
-                                    progressPercent = 100;
-                                } else if (totalHours > 0) {
-                                    const calculatedProgress = (totalHours / assumedTargetHours) * 100;
-                                    progressPercent = Math.max(5, Math.min(calculatedProgress, 100));
-                                }
+            <div className="py-6 flex-1 flex flex-col min-h-0">
+                 {/* Project View */}
+                <div className={`flex-1 min-h-0 ${activeTab === 'projects' ? 'flex flex-col' : 'hidden'}`}>
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-2">
+                           <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:bg-slate-700/50'}`}><ViewGridIcon className="w-5 h-5"/></button>
+                           <button onClick={() => setViewMode('kanban')} className={`p-2 rounded-lg ${viewMode === 'kanban' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:bg-slate-700/50'}`}><ViewColumnsIcon className="w-5 h-5"/></button>
+                           <button onClick={handleRefreshClick} className="p-2 rounded-lg text-slate-400 hover:bg-slate-700/50"><RefreshIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}/></button>
+                        </div>
+                        {isAdmin && (
+                            <button onClick={handleOpenAddProject} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
+                                <PlusIcon className="w-5 h-5 mr-2" />
+                                Ajouter un projet
+                            </button>
+                        )}
+                    </div>
 
-                                return (
-                                    <div 
-                                        key={project.id} 
-                                        className="animate-fadeInUp group relative bg-slate-900/50 p-5 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-telya-green/10"
-                                        style={{ animationDelay: `${index * 50}ms` }}
-                                    >
-                                        <div className="absolute -inset-px rounded-2xl border border-telya-green/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true" />
-                                        <div>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h3 onClick={() => onViewDetails(project)} className="font-semibold text-white text-lg pr-4 cursor-pointer hover:text-telya-green transition-colors">{project.name}</h3>
-                                                <ActionMenu>
-                                                    <button onClick={() => onViewDetails(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Détails</button>
-                                                    {isAdmin && (
-                                                    <>
-                                                        <button onClick={() => handleOpenEditModal(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                                                        <button onClick={() => handleOpenDeleteModal(project)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
-                                                    </>
-                                                    )}
-                                                </ActionMenu>
-                                            </div>
-                                            {client && (
+                    {projects.length > 0 ? (
+                        viewMode === 'grid' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 overflow-y-auto p-1">
+                                {projects.map(project => {
+                                    const team = users.filter(u => project.assignedEmployeeIds.includes(u.id));
+                                    const projectTimeLogs = timeLogs.filter(log => log.projectId === project.id);
+                                    const totalHours = projectTimeLogs.reduce((acc, log) => acc + log.hours, 0);
+                                    return (
+                                        <div key={project.id} className="bg-slate-900/50 rounded-2xl p-5 border border-[var(--border-color)] flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-green-500/50 hover:shadow-2xl hover:shadow-green-500/10">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-semibold text-white text-lg pr-4">{project.name}</h3>
+                                                    <ActionMenu>
+                                                        <button onClick={() => onViewDetails(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les détails</button>
+                                                        <button onClick={() => handleOpenEditProject(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                                                        <button onClick={() => handleOpenDeleteProject(project)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                                                    </ActionMenu>
+                                                </div>
                                                 <div className="flex items-center space-x-2 text-sm text-slate-400 mb-4">
                                                     <ClientsIcon className="w-4 h-4" />
-                                                    <span>{client.companyName}</span>
+                                                    <span>{getClientName(project.clientId)}</span>
                                                 </div>
-                                            )}
-                                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColors[project.status]}`}>
-                                                {project.status}
-                                            </span>
-                                             {(totalHours > 0 || project.status === ProjectStatus.COMPLETED) && (
-                                                <div className="mt-4">
-                                                    <div className="w-full bg-slate-700 rounded-full h-1.5">
-                                                        <div className="bg-telya-green h-1.5 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-xs text-slate-400 mt-1">
-                                                        <div className="flex items-center">
-                                                            <ClockIcon className="w-3 h-3 mr-1" />
-                                                            <span>Heures enregistrées</span>
-                                                        </div>
-                                                        <span className="font-semibold text-white">{totalHours.toFixed(1)}h</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${projectStatusColors[project.status]}`}>
+                                                    {project.status}
+                                                </span>
+                                            </div>
 
-                                        <div className="mt-4 pt-4 border-t border-slate-800">
-                                            <p className="text-xs text-slate-400 mb-2">Équipe:</p>
-                                            <div className="flex items-center -space-x-3">
-                                                {team.map(member => (
-                                                    <img
-                                                        key={member.id}
-                                                        src={member.avatar}
-                                                        alt={member.name}
-                                                        title={member.name}
-                                                        className="w-8 h-8 rounded-full border-2 border-slate-800"
-                                                    />
-                                                ))}
-                                                {team.length === 0 && <span className="text-xs text-slate-500 pl-3">Aucune</span>}
+                                            <div className="mt-4 pt-4 border-t border-slate-800">
+                                                <div className="flex justify-between items-center text-xs text-slate-400 mb-2">
+                                                    <div className="flex items-center -space-x-3">
+                                                        {team.map(member => (
+                                                            <img
+                                                                key={member.id}
+                                                                src={member.avatar}
+                                                                alt={member.name}
+                                                                title={member.name}
+                                                                className="w-8 h-8 rounded-full border-2 border-slate-800"
+                                                            />
+                                                        ))}
+                                                        {team.length === 0 && <span className="text-xs text-slate-500 pl-3">Aucune équipe</span>}
+                                                    </div>
+                                                    <div className="flex items-center space-x-1">
+                                                        <ClockIcon className="w-4 h-4" />
+                                                        <span>{totalHours.toFixed(1)}h</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex-1 -m-4">
+                                <KanbanBoard projects={projects} clients={clients} users={users} onUpdateProject={onUpdate} />
+                            </div>
+                        )
                     ) : (
-                        <KanbanBoard projects={projects} clients={clients} users={users} onUpdateProject={onUpdate} />
-                    )
-                ) : (
-                    <div className="text-center py-20 text-slate-400">
-                         <div className="flex justify-center mb-4">
-                            <ProjectsIcon className="w-12 h-12 text-slate-600"/>
+                        <div className="text-center py-20 text-slate-400 flex-1 flex flex-col justify-center items-center">
+                            <ProjectsIcon className="w-12 h-12 text-slate-600 mb-4"/>
+                            <h3 className="font-display text-xl text-white">Aucun projet trouvé</h3>
+                            <p className="mt-1">Commencez par en ajouter un nouveau.</p>
                         </div>
-                        <h3 className="font-display text-xl text-white">Aucun projet trouvé</h3>
-                        <p className="mt-1">Commencez par en créer un nouveau.</p>
+                    )}
+                </div>
+
+                {/* Tasks View */}
+                <div className={`flex-1 min-h-0 ${activeTab === 'tasks' ? 'flex flex-col' : 'hidden'}`}>
+                     <div className="flex justify-between items-center mb-6">
+                        <h2 className="font-display text-3xl tracking-wide text-white">Toutes les Tâches</h2>
+                        <button onClick={handleOpenAddTask} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300">
+                            <PlusIcon className="w-5 h-5 mr-2" />
+                            Nouvelle Tâche
+                        </button>
                     </div>
-                )}
+                     <div className="space-y-6 overflow-y-auto p-1">
+                        {Object.entries(tasksByProject).map(([projectId, projectTasks]) => (
+                             <div key={projectId} className="bg-slate-900/40 p-6 rounded-2xl border border-white/10">
+                                <h3 className="font-display text-2xl text-white mb-4">{projects.find(p=>p.id === projectId)?.name}</h3>
+                                <div className="space-y-3">
+                                    {(projectTasks as Task[]).map(task => {
+                                         const assignee = users.find(u => u.id === task.employeeId);
+                                         return (
+                                            <div key={task.id} className="bg-slate-800/50 p-3 rounded-lg flex items-center justify-between gap-2">
+                                                <p className="text-slate-200 flex-1">{task.title}</p>
+                                                <div className="flex items-center gap-3">
+                                                    {assignee && <img src={assignee.avatar} alt={assignee.name} title={`Assigné à ${assignee.name}`} className="w-6 h-6 rounded-full"/>}
+                                                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${taskStatusStyles[task.status]}`}>{task.status}</span>
+                                                     <ActionMenu>
+                                                        <button onClick={() => handleOpenEditTask(task)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                                                        <button onClick={() => handleOpenDeleteTask(task)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                                                    </ActionMenu>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
             </div>
 
-            <ProjectForm
-                isOpen={isFormModalOpen}
-                onClose={handleCloseModals}
-                onSave={handleSave}
-                project={selectedProject}
+            <ProjectForm 
+                isOpen={isProjectFormOpen} 
+                onClose={handleCloseModals} 
+                onSave={handleSaveProject} 
+                project={selectedProject} 
                 clients={clients}
-                employees={users.filter(u => u.role === UserRole.EMPLOYEE)}
+                employees={employees}
             />
-
             <ConfirmationModal 
-                isOpen={isDeleteModalOpen}
+                isOpen={isDeleteProjectModalOpen}
                 onClose={handleCloseModals}
-                onConfirm={handleDelete}
-                title="Supprimer le Projet"
-                message={`Êtes-vous sûr de vouloir supprimer le projet "${selectedProject?.name}" ? Cette action est irréversible.`}
+                onConfirm={handleDeleteProject}
+                title="Supprimer le projet"
+                message={`Êtes-vous sûr de vouloir supprimer ${selectedProject?.name}? Cette action est irréversible.`}
+            />
+             <TaskForm 
+                isOpen={isTaskFormOpen} 
+                onClose={handleCloseModals} 
+                onSave={handleSaveTask} 
+                task={selectedTask} 
+                projects={projects}
+                employees={employees}
+            />
+             <ConfirmationModal 
+                isOpen={isDeleteTaskModalOpen}
+                onClose={handleCloseModals}
+                onConfirm={handleDeleteTask}
+                title="Supprimer la tâche"
+                message={`Êtes-vous sûr de vouloir supprimer la tâche "${selectedTask?.title}"?`}
             />
         </div>
     );

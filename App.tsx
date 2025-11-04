@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, View, Project, Client, ActivityLog, TimeLog, ChatMessage, ActiveTimer, ToastNotificationType, Invoice, ProjectFile, Task, Feedback, PanelNotification } from './types';
+import { User, UserRole, View, Project, Client, ActivityLog, TimeLog, ChatMessage, ActiveTimer, ToastNotificationType, Invoice, ProjectFile, Task, Feedback, PanelNotification, ProjectStatus } from './types';
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_CLIENTS, MOCK_ACTIVITY_LOG, MOCK_TIME_LOGS, MOCK_CHAT_MESSAGES, MOCK_INVOICES, MOCK_FILES, MOCK_TASKS, MOCK_FEEDBACK, MOCK_PANEL_NOTIFICATIONS } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -11,7 +11,7 @@ import AdminDashboard from './components/AdminDashboard';
 import ProjectManagementView from './components/ProjectManagementView';
 import TeamView from './components/TeamView';
 import ClientProjectsOverview from './components/ClientProjectsOverview';
-import ProjectDetailsView from './components/ProjectDetailsView';
+import ProjectDetails from './components/ProjectDetails';
 import ClientProjectView from './components/ClientProjectView';
 import ProjectChatView from './components/ProjectChatView';
 import InboxView from './components/InboxView';
@@ -80,23 +80,17 @@ const AppContent: React.FC = () => {
             setActiveView(defaultView);
         }
     }, [currentUser]);
-    
-    // Handlers for navigation and state changes
-    const navigateTo = (view: View) => {
-        setDetailedProject(null);
-        setDetailedClient(null);
-        setChatProject(null);
-        setActiveView(view);
-    };
 
-    const handleLogin = (user: User) => {
-        setCurrentUser(user);
-    };
-
-    const handleLogout = () => {
-        setCurrentUser(null);
-        setActiveTimer(null); // Stop timer on logout
-    };
+    useEffect(() => {
+        if (isMobileNavOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = ''; // Cleanup on component unmount
+        };
+    }, [isMobileNavOpen]);
     
     const addLogEntry = (userId: string, action: string, details?: string) => {
         const newLog: ActivityLog = {
@@ -108,6 +102,18 @@ const AppContent: React.FC = () => {
         };
         setActivityLog(prev => [newLog, ...prev]);
     };
+    
+    const addPanelNotifications = (notificationData: Omit<PanelNotification, 'id' | 'timestamp' | 'read' | 'userId'> & { userIds: string[] }) => {
+        const { userIds, ...rest } = notificationData;
+        const newNotifications: PanelNotification[] = userIds.map(userId => ({
+            ...rest,
+            id: `notif-${Date.now()}-${Math.random()}`,
+            userId,
+            timestamp: new Date(),
+            read: false,
+        }));
+        setPanelNotifications(prev => [...newNotifications, ...prev]);
+    };
 
     // Data Manipulation Handlers
     const handleAddProject = (projectData: Omit<Project, 'id'>) => {
@@ -115,11 +121,33 @@ const AppContent: React.FC = () => {
         setProjects(prev => [...prev, newProject]);
         if(currentUser) addLogEntry(currentUser.id, "a créé le projet", newProject.name);
         addNotification({type: ToastNotificationType.SUCCESS, title: 'Projet Ajouté', message: `Le projet "${newProject.name}" a été créé avec succès.`});
+        const adminIds = users.filter(u => u.role === UserRole.ADMIN).map(u => u.id);
+        addPanelNotifications({
+            userIds: adminIds,
+            projectId: newProject.id,
+            type: 'project-status',
+            title: 'Nouveau Projet Créé',
+            description: `Le projet "${newProject.name}" vient d'être ajouté.`,
+        });
     };
     const handleUpdateProject = (updatedProject: Project) => {
+        const oldProject = projects.find(p => p.id === updatedProject.id);
         setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
         if(currentUser) addLogEntry(currentUser.id, "a mis à jour le projet", updatedProject.name);
         addNotification({type: ToastNotificationType.INFO, title: 'Projet Mis à Jour', message: `Le projet "${updatedProject.name}" a été mis à jour.`});
+        if (oldProject && oldProject.status !== updatedProject.status) {
+              const clientUser = users.find(u => u.email === clients.find(c => c.id === updatedProject.clientId)?.contactEmail);
+              const userIdsToNotify = [...updatedProject.assignedEmployeeIds];
+              if (clientUser) userIdsToNotify.push(clientUser.id);
+              
+              addPanelNotifications({
+                  userIds: userIdsToNotify,
+                  projectId: updatedProject.id,
+                  type: 'project-status',
+                  title: 'Statut du Projet Mis à Jour',
+                  description: `Le statut de "${updatedProject.name}" est : ${updatedProject.status}.`
+              });
+          }
     };
     const handleDeleteProject = (id: string) => {
         const projectToDelete = projects.find(p => p.id === id);
@@ -165,20 +193,56 @@ const AppContent: React.FC = () => {
         addNotification({type: ToastNotificationType.ERROR, title: 'Client Supprimé', message: `${clientToDelete?.companyName} a été supprimé.`});
     };
     
+    const handleAddTask = (taskData: Omit<Task, 'id'>) => {
+        const newTask: Task = { ...taskData, id: `task-${Date.now()}` };
+        setTasks(prev => [...prev, newTask]);
+        if(currentUser) {
+            const projectName = projects.find(p => p.id === newTask.projectId)?.name;
+            addLogEntry(currentUser.id, "a créé la tâche", `${newTask.title} dans ${projectName}`);
+        }
+        addNotification({type: ToastNotificationType.SUCCESS, title: 'Tâche Ajoutée', message: `La tâche "${newTask.title}" a été créée.`});
+        addPanelNotifications({
+            userIds: [newTask.employeeId],
+            projectId: newTask.projectId,
+            type: 'new-task',
+            title: 'Nouvelle Tâche Assignée',
+            description: `On vous a assigné la tâche : "${newTask.title}".`
+        });
+    };
     const handleUpdateTask = (updatedTask: Task) => {
         setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
         addNotification({type: ToastNotificationType.INFO, title: 'Tâche mise à jour', message: `Le statut de la tâche "${updatedTask.title}" est maintenant "${updatedTask.status}".`});
-    }
+    };
+     const handleDeleteTask = (id: string) => {
+        const taskToDelete = tasks.find(t => t.id === id);
+        setTasks(prev => prev.filter(t => t.id !== id));
+        if(currentUser && taskToDelete) {
+            const projectName = projects.find(p => p.id === taskToDelete.projectId)?.name;
+            addLogEntry(currentUser.id, "a supprimé la tâche", `${taskToDelete.title} de ${projectName}`);
+        }
+        addNotification({type: ToastNotificationType.ERROR, title: 'Tâche Supprimée', message: `La tâche "${taskToDelete?.title}" a été supprimée.`});
+    };
 
     const handleAddFeedback = (feedbackData: Omit<Feedback, 'id' | 'timestamp'>) => {
         const newFeedback: Feedback = { ...feedbackData, id: `fb-${Date.now()}`, timestamp: new Date() };
         setFeedback(prev => [newFeedback, ...prev]);
-        if(currentUser) addLogEntry(currentUser.id, "a soumis un feedback pour", projects.find(p => p.id === newFeedback.projectId)?.name);
+        const client = clients.find(c => c.id === feedbackData.clientId);
+        const project = projects.find(p => p.id === newFeedback.projectId)
+        if(currentUser) addLogEntry(currentUser.id, "a soumis un feedback pour", project?.name);
         addNotification({type: ToastNotificationType.SUCCESS, title: 'Feedback Envoyé', message: `Merci pour vos commentaires !`});
+        
+        const adminIds = users.filter(u => u.role === UserRole.ADMIN).map(u => u.id);
+        addPanelNotifications({
+           userIds: adminIds,
+           projectId: newFeedback.projectId,
+           type: 'new-feedback',
+           title: 'Nouveau Feedback Reçu',
+           description: `Feedback de ${client?.companyName} pour ${project?.name}.`
+       });
     };
 
     const handleAddInvoice = (invoiceData: Omit<Invoice, 'id'>) => {
-        const newInvoice: Invoice = { ...invoiceData, id: `inv-${Date.now()}` };
+        const newInvoice: Invoice = { ...invoiceData, id: `inv-${String(Date.now()).slice(-4)}` };
         setInvoices(prev => [newInvoice, ...prev]);
         if(currentUser) addLogEntry(currentUser.id, "a créé la facture", newInvoice.id.toUpperCase());
         addNotification({type: ToastNotificationType.SUCCESS, title: 'Facture Créée', message: `La facture "${newInvoice.id.toUpperCase()}" a été créée.`});
@@ -199,9 +263,24 @@ const AppContent: React.FC = () => {
             lastModified: new Date(),
         };
         setFiles(prev => [newFile, ...prev]);
-        const projectName = projects.find(p => p.id === newFile.projectId)?.name;
-        addLogEntry(currentUser.id, "a téléversé le fichier", `${newFile.name} dans ${projectName}`);
+        const project = projects.find(p => p.id === newFile.projectId);
+        addLogEntry(currentUser.id, "a téléversé le fichier", `${newFile.name} dans ${project?.name}`);
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Fichier Téléversé', message: `Le fichier "${newFile.name}" a été ajouté.` });
+        
+        if (!project) return;
+        const client = clients.find(c => c.id === project.clientId);
+        const clientUser = client ? users.find(u => u.email === client.contactEmail) : null;
+        let userIdsToNotify = [...project.assignedEmployeeIds];
+        if(clientUser) userIdsToNotify.push(clientUser.id);
+        userIdsToNotify = userIdsToNotify.filter(id => id !== currentUser.id);
+        
+        addPanelNotifications({
+           userIds: userIdsToNotify,
+           projectId: newFile.projectId,
+           type: 'new-file',
+           title: 'Nouveau Fichier Ajouté',
+           description: `${currentUser.name} a ajouté "${newFile.name}" à ${project.name}.`
+       });
     };
 
     const handleSendMessage = (projectId: string, text: string) => {
@@ -215,7 +294,23 @@ const AppContent: React.FC = () => {
             readBy: [currentUser.id]
         };
         setChatMessages(prev => [...prev, newMessage]);
-        addLogEntry(currentUser.id, "a envoyé un message dans", projects.find(p=>p.id === projectId)?.name || 'un projet');
+        const project = projects.find(p=>p.id === projectId);
+        addLogEntry(currentUser.id, "a envoyé un message dans", project?.name || 'un projet');
+
+        if (!project) return;
+        const client = clients.find(c => c.id === project.clientId);
+        const clientUser = client ? users.find(u => u.email === client.contactEmail) : null;
+        let userIdsToNotify = [...project.assignedEmployeeIds];
+        if(clientUser) userIdsToNotify.push(clientUser.id);
+        userIdsToNotify = userIdsToNotify.filter(id => id !== currentUser.id);
+
+        addPanelNotifications({
+            userIds: userIdsToNotify,
+            projectId: projectId,
+            type: 'new-message',
+            title: `Nouveau message de ${currentUser.name}`,
+            description: `"${text.substring(0, 50)}..."`
+        });
     };
 
     const handleMarkConversationAsRead = (projectId: string) => {
@@ -246,12 +341,30 @@ const AppContent: React.FC = () => {
         addNotification({type: ToastNotificationType.SUCCESS, title: 'Temps Enregistré', message: `${logData.hours.toFixed(1)} heures ont été enregistrées avec succès.`});
     };
     
+    // Handlers for navigation and state changes
+    const navigateTo = (view: View) => {
+        setDetailedProject(null);
+        setDetailedClient(null);
+        setChatProject(null);
+        setActiveView(view);
+    };
+
+    const handleLogin = (user: User) => {
+        setCurrentUser(user);
+    };
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+        setActiveTimer(null); // Stop timer on logout
+    };
+    
     const handleToggleNotificationsPanel = () => {
         setIsNotificationsPanelOpen(prev => !prev);
     };
 
     const handleMarkAllNotificationsAsRead = () => {
-        setPanelNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        if (!currentUser) return;
+        setPanelNotifications(prev => prev.map(n => (n.userId === currentUser.id ? { ...n, read: true } : n)));
         addNotification({ type: ToastNotificationType.INFO, title: 'Notifications lues', message: 'Toutes les notifications ont été marquées comme lues.' });
     };
 
@@ -259,11 +372,7 @@ const AppContent: React.FC = () => {
         setPanelNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
         const project = projects.find(p => p.id === notification.projectId);
         if (project) {
-            if (notification.type === 'new-message') {
-                handleViewChat(project);
-            } else {
-                handleViewProjectDetails(project);
-            }
+            handleViewProjectDetails(project);
         }
     };
     
@@ -305,7 +414,7 @@ const AppContent: React.FC = () => {
         const viewTitles: Record<View, string> = {
             'dashboard': 'Tableau de bord',
             'projects': 'Projets & Tâches',
-            'team': 'Équipe & Rôles',
+            'team': 'Équipe & Clients',
             'messages': 'Messages',
             'reports': 'Rapports & Performance',
             'billing': 'Facturation',
@@ -390,10 +499,11 @@ const AppContent: React.FC = () => {
             const client = clients.find(c => c.id === detailedProject.clientId);
             const team = users.filter(u => detailedProject.assignedEmployeeIds.includes(u.id));
             if (!client) return <div>Erreur: Client introuvable</div>;
-            return <ProjectDetailsView 
+            return <ProjectDetails 
                 project={detailedProject} 
                 client={client} 
                 team={team} 
+                tasks={tasks.filter(t => t.projectId === detailedProject.id)}
                 timeLogs={timeLogs}
                 files={files.filter(f => f.projectId === detailedProject.id)}
                 currentUser={currentUser}
@@ -404,6 +514,7 @@ const AppContent: React.FC = () => {
                 onStartTimer={handleStartTimer}
                 onStopTimerAndLog={handleStopTimerAndLog}
                 onAddFile={handleAddFile}
+                onUpdateTask={handleUpdateTask}
             />;
         }
         if (detailedClient) {
@@ -429,12 +540,31 @@ const AppContent: React.FC = () => {
             case UserRole.ADMIN:
                 switch (activeView) {
                     case 'dashboard': return <AdminDashboard currentUser={currentUser} users={users} projects={projects} activityLog={activityLog} invoices={invoices} onUpdateInvoice={handleUpdateInvoice} onViewProjectDetails={handleViewProjectDetails} tasks={tasks} />;
-                    case 'projects': return <ProjectManagementView projects={projects} users={users} clients={clients} currentUser={currentUser} timeLogs={timeLogs} onAdd={handleAddProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} onViewDetails={handleViewProjectDetails} onManualRefresh={handleManualRefresh} />;
-                    case 'team': return <TeamView users={users} clients={clients} currentUser={currentUser} onAddUser={handleAddUser} onUpdateUser={handleUpdateUser} onDeleteUser={handleDeleteUser} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} onViewClientProjects={handleViewClientProjects}/>;
+                    case 'projects': return <ProjectManagementView projects={projects} users={users} clients={clients} currentUser={currentUser} timeLogs={timeLogs} onAdd={handleAddProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} onViewDetails={handleViewProjectDetails} onManualRefresh={handleManualRefresh} tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask}/>;
+                    case 'team': return <TeamView
+                        users={users}
+                        clients={clients}
+                        currentUser={currentUser}
+                        onAddUser={handleAddUser}
+                        onUpdateUser={handleUpdateUser}
+                        onDeleteUser={handleDeleteUser}
+                        onAddClient={handleAddClient}
+                        onUpdateClient={handleUpdateClient}
+                        onDeleteClient={handleDeleteClient}
+                        onViewClientProjects={handleViewClientProjects}
+                        tasks={tasks}
+                        projects={projects}/>;
                     case 'messages': return <InboxView currentUser={currentUser} projects={projects} clients={clients} users={users} chatMessages={chatMessages} onSendMessage={handleSendMessage} onConversationSelect={handleMarkConversationAsRead}/>;
                     case 'reports': return <ReportsView projects={projects} timeLogs={timeLogs} users={users} clients={clients} />;
-                    case 'billing': return <BillingView invoices={invoices} clients={clients} currentUser={currentUser} onAddInvoice={handleAddInvoice} projects={projects} />;
-                    case 'ai-insights': return <AiInsightsView />;
+                    case 'billing': return <BillingView invoices={invoices} clients={clients} currentUser={currentUser} onAddInvoice={handleAddInvoice} projects={projects} onUpdateInvoice={handleUpdateInvoice} />;
+                    case 'ai-insights': return <AiInsightsView 
+                                                projects={projects}
+                                                users={users}
+                                                clients={clients}
+                                                invoices={invoices}
+                                                tasks={tasks}
+                                                timeLogs={timeLogs}
+                                            />;
                     case 'files': return <FilesView files={files} projects={projects} users={users} />;
                     case 'settings': return <SettingsView onLogout={handleLogout} />;
                     case 'activity-log': return <ActivityLogView activityLog={activityLog} users={users} />;
@@ -457,7 +587,7 @@ const AppContent: React.FC = () => {
                     case 'client-projects': return <ClientProjectView currentUser={currentUser} projects={projects} clients={clients} users={users} onViewChat={handleViewChat} />;
                     case 'support': return <InboxView currentUser={currentUser} projects={projects.filter(p => clientProfile && p.clientId === clientProfile.id)} clients={clients} users={users} chatMessages={chatMessages} onSendMessage={handleSendMessage} onConversationSelect={handleMarkConversationAsRead}/>;
                     case 'deliverables': return <ClientDeliverablesView currentUser={currentUser} files={files} projects={projects} clients={clients} />;
-                    case 'client-billing': return <ClientBillingView currentUser={currentUser} invoices={invoices} clients={clients} />;
+                    case 'client-billing': return <ClientBillingView currentUser={currentUser} invoices={invoices} clients={clients} projects={projects} />;
                     case 'feedback': return <ClientFeedbackView currentUser={currentUser} feedback={feedback} projects={projects} clients={clients} onAddFeedback={handleAddFeedback} />;
                     default: return <ViewPlaceholder title={getPageTitle(activeView)} />;
                 }
@@ -486,8 +616,10 @@ const AppContent: React.FC = () => {
                     chatMessages={chatMessages}
                     invoices={invoices}
                     tasks={tasks}
+                    files={files}
+                    panelNotifications={panelNotifications.filter(n => n.userId === currentUser.id)}
                 />
-                <div className="flex-1 flex flex-col gap-6 p-4 md:p-6 lg:p-8 overflow-hidden h-full">
+                <div className="flex-1 flex flex-col gap-4 md:gap-6 p-4 md:p-6 lg:p-8 overflow-hidden h-full">
                     <Header 
                         title={getPageTitle(activeView)}
                         onToggleMobileNav={() => setIsMobileNavOpen(!isMobileNavOpen)}
@@ -507,7 +639,7 @@ const AppContent: React.FC = () => {
             </div>
             {isMobileNavOpen && (
                 <div 
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
                     onClick={() => setIsMobileNavOpen(false)}
                 ></div>
             )}
