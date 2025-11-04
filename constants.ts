@@ -133,6 +133,7 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         senderId: 'user-emp-1',
         text: "Bonjour l'équipe ! Démarrage du projet de refonte. Les fichiers Figma sont maintenant disponibles dans le lecteur partagé.",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+        readBy: ['user-emp-1'],
     },
     {
         id: 'msg-2',
@@ -140,6 +141,7 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         senderId: 'user-client-1',
         text: "Merci, Alice ! Mon équipe et moi allons les examiner cet après-midi et fournir des commentaires d'ici la fin de la journée.",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1.5),
+        readBy: ['user-client-1'],
     },
     {
         id: 'msg-3',
@@ -147,6 +149,7 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         senderId: 'user-emp-2',
         text: "Parfait. Je vais commencer à mettre en place l'environnement de développement.",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1),
+        readBy: ['user-emp-2'],
     },
     {
         id: 'msg-4',
@@ -154,6 +157,7 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         senderId: 'user-emp-3',
         text: "Le rapport SEO final pour la campagne Quantum Corp a été téléchargé. Excellent travail à tous pour avoir atteint nos objectifs !",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+        readBy: ['user-emp-3', 'user-client-2'],
     },
      {
         id: 'msg-5',
@@ -161,6 +165,7 @@ export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
         senderId: 'user-client-2',
         text: "Résultats incroyables, Charlie ! Nous sommes ravis du résultat. Veuillez nous envoyer la facture dès que vous en aurez l'occasion.",
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1.9),
+        readBy: ['user-client-2', 'user-emp-3'],
     }
 ];
 

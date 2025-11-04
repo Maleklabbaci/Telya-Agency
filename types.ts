@@ -1,4 +1,5 @@
 
+
 export enum UserRole {
   ADMIN = 'Admin',
   EMPLOYEE = 'Employee',
@@ -32,7 +33,7 @@ export interface Client {
 }
 
 export interface User {
-  id: string;
+  id:string;
   name: string;
   email: string;
   avatar: string;
@@ -47,6 +48,7 @@ export interface ChatMessage {
   senderId: string;
   text: string;
   timestamp: Date;
+  readBy: string[];
 }
 
 export enum ToastNotificationType {

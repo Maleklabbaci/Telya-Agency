@@ -10,14 +10,16 @@ interface InboxViewProps {
   users: User[];
   chatMessages: ChatMessage[];
   onSendMessage: (projectId: string, text: string) => void;
+  onConversationSelect: (projectId: string) => void;
 }
 
 interface Conversation {
   project: Project;
   lastMessage: ChatMessage | null;
+  isUnread: boolean;
 }
 
-const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, users, chatMessages, onSendMessage }) => {
+const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, users, chatMessages, onSendMessage, onConversationSelect }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -60,7 +62,8 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
     const lastMessage = projectMessages.length > 0
       ? projectMessages.reduce((latest, current) => new Date(latest.timestamp) > new Date(current.timestamp) ? latest : current)
       : null;
-    return { project, lastMessage };
+    const isUnread = projectMessages.some(m => m.senderId !== currentUser.id && !m.readBy.includes(currentUser.id));
+    return { project, lastMessage, isUnread };
   }).sort((a, b) => {
     if (!a.lastMessage) return 1;
     if (!b.lastMessage) return -1;
@@ -68,6 +71,11 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
   });
 
   const selectedProjectMessages = chatMessages.filter(m => m.projectId === selectedProjectId).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  const handleConversationSelect = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    onConversationSelect(projectId);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -123,18 +131,19 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
           <h2 className="font-display text-2xl tracking-wide text-white">Conversations</h2>
         </div>
         <ul className="overflow-y-auto flex-1">
-          {conversations.map(({ project, lastMessage }) => {
+          {conversations.map(({ project, lastMessage, isUnread }) => {
             const client = getClientById(project.clientId);
             const isSelected = selectedProjectId === project.id;
             return (
               <li key={project.id}>
                 <button
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => handleConversationSelect(project.id)}
                   className={`w-full text-left p-4 border-b border-slate-900/50 hover:bg-slate-700/50 transition-colors duration-200 relative ${isSelected ? 'bg-slate-700/60' : ''}`}
                 >
                   {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-full shadow-[0_0_10px_theme(colors.green.500)]"></div>}
+                  {isUnread && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_theme(colors.green.500)]"></div>}
                   <div className="flex justify-between items-center mb-1">
-                    <p className="font-semibold text-white truncate pr-4">{project.name}</p>
+                    <p className={`truncate pr-8 ${isUnread ? 'font-bold text-white' : 'font-semibold text-slate-200'}`}>{project.name}</p>
                     {lastMessage && <p className="text-xs text-slate-400 flex-shrink-0 ml-2">{new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
                   </div>
                   <p className="text-sm text-slate-400 truncate">

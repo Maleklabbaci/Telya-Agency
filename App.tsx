@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, Client, UserRole, Project, ChatMessage, ToastNotificationType, TimeLog, ActiveTimer, PanelNotification } from './types';
 import { MOCK_USERS, MOCK_CLIENTS, MOCK_PROJECTS, MOCK_CHAT_MESSAGES, MOCK_TIME_LOGS } from './constants';
 import Sidebar from './components/Sidebar';
@@ -50,6 +51,49 @@ const AppContent: React.FC = () => {
         triggerSyncAnimation();
     }
 
+    const unreadCount = useMemo(() => {
+        if (!currentUser) return 0;
+        
+        const myProjectIds = new Set<string>();
+        projects.forEach(p => {
+            if (currentUser.role === UserRole.ADMIN) {
+                 myProjectIds.add(p.id);
+                 return;
+            }
+            if (currentUser.role === UserRole.EMPLOYEE && p.assignedEmployeeIds.includes(currentUser.id)) {
+                myProjectIds.add(p.id);
+                return;
+            }
+            if (currentUser.role === UserRole.CLIENT) {
+                const clientProfile = clients.find(c => c.id === p.clientId && c.contactEmail === currentUser.email);
+                if (clientProfile) {
+                    myProjectIds.add(p.id);
+                }
+            }
+        });
+        
+        const unreadProjectIds = new Set<string>();
+        chatMessages.forEach(msg => {
+            if (myProjectIds.has(msg.projectId) && msg.senderId !== currentUser.id && !msg.readBy.includes(currentUser.id)) {
+                unreadProjectIds.add(msg.projectId);
+            }
+        });
+
+        return unreadProjectIds.size;
+    }, [chatMessages, currentUser, projects, clients]);
+
+    const handleMarkConversationAsRead = (projectId: string) => {
+        if (!currentUser) return;
+        updateStateAndSync(setChatMessages, prev => 
+            prev.map(msg => {
+                if (msg.projectId === projectId && !msg.readBy.includes(currentUser.id)) {
+                    return { ...msg, readBy: [...msg.readBy, currentUser.id] };
+                }
+                return msg;
+            })
+        );
+    };
+
     const handleLogin = (user: User) => {
         setCurrentUser(user);
         setActiveView('dashboard');
@@ -73,6 +117,7 @@ const AppContent: React.FC = () => {
     };
     
     const handleViewProjectChat = (project: Project) => {
+        handleMarkConversationAsRead(project.id);
         setSelectedProjectForDetails(project);
         setActiveView('project-chat');
     };
@@ -263,6 +308,7 @@ const AppContent: React.FC = () => {
             senderId: currentUser.id,
             text,
             timestamp: new Date(),
+            readBy: [currentUser.id],
         };
         updateStateAndSync(setChatMessages, prev => [...prev, newMessage]);
 
@@ -416,6 +462,7 @@ const AppContent: React.FC = () => {
                         projects={projects}
                         chatMessages={chatMessages}
                         onSendMessage={handleAddChatMessage}
+                        onConversationSelect={handleMarkConversationAsRead}
                     />;
                 }
                 return null;
@@ -487,6 +534,7 @@ const AppContent: React.FC = () => {
                     onCloseMobile={() => setIsMobileNavOpen(false)}
                     onLogout={handleLogout}
                     onOpenProfileSettings={() => setIsProfileModalOpen(true)}
+                    unreadCount={unreadCount}
                 />
                 <div className="flex-1 flex flex-col gap-6 p-4 md:p-6 lg:p-8 overflow-hidden">
                     <Header 
