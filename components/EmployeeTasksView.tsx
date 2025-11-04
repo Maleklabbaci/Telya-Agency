@@ -21,9 +21,9 @@ const statusOptions: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 const EmployeeTasksView: React.FC<EmployeeTasksViewProps> = ({ currentUser, tasks, projects, onUpdateTask }) => {
     const myTasks = tasks.filter(t => t.employeeId === currentUser.id);
 
-    // Fix: Replaced the reduce function with a more explicit version to help TypeScript's type inference.
+    // Fix: Explicitly type the accumulator in the reduce function to ensure correct type inference for tasksByProject.
     // This ensures `projectTasks` is correctly typed as `Task[]` and not `unknown`.
-    const tasksByProject = myTasks.reduce<Record<string, Task[]>>((acc, task) => {
+    const tasksByProject = myTasks.reduce((acc: Record<string, Task[]>, task) => {
         if (!acc[task.projectId]) {
             acc[task.projectId] = [];
         }

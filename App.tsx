@@ -334,6 +334,53 @@ const AppContent: React.FC = () => {
     
     const currentViewKey = detailedProject?.id || detailedClient?.id || chatProject?.id || activeView;
 
+    const getViewBackgroundColorClass = (): string => {
+        let currentViewTarget: View | 'details' | 'chat' | 'client-overview' = activeView;
+        if (detailedProject) currentViewTarget = 'details';
+        if (chatProject) currentViewTarget = 'chat';
+        if (detailedClient) currentViewTarget = 'client-overview';
+
+        const viewColorMap: Partial<Record<View | 'details' | 'chat' | 'client-overview', string>> = {
+            'dashboard': 'bg-view-dashboard',
+            'client-dashboard': 'bg-view-dashboard',
+            
+            'projects': 'bg-view-projects',
+            'my-projects': 'bg-view-projects',
+            'client-projects': 'bg-view-projects',
+            'details': 'bg-view-projects',
+
+            'team': 'bg-view-team',
+            'client-overview': 'bg-view-team',
+
+            'messages': 'bg-view-messages',
+            'support': 'bg-view-messages',
+            'chat': 'bg-view-messages',
+
+            'reports': 'bg-view-reports',
+            'my-performance': 'bg-view-reports',
+
+            'billing': 'bg-view-billing',
+            'client-billing': 'bg-view-billing',
+
+            'ai-insights': 'bg-view-ai-insights',
+
+            'files': 'bg-view-files',
+            'project-files': 'bg-view-files',
+            'deliverables': 'bg-view-deliverables',
+
+            'settings': 'bg-view-settings',
+            'activity-log': 'bg-view-activity-log',
+
+            'my-tasks': 'bg-view-my-tasks',
+            'calendar': 'bg-view-calendar',
+            'time-tracking': 'bg-view-time-tracking',
+            
+            'feedback': 'bg-view-feedback',
+        };
+
+        return viewColorMap[currentViewTarget] || 'bg-view-default';
+    }
+
 
     const renderMainContent = () => {
         if (!currentUser) return null;
@@ -451,7 +498,7 @@ const AppContent: React.FC = () => {
                         onMarkAllAsRead={handleMarkAllNotificationsAsRead}
                         onNotificationClick={handleNotificationClick}
                     />
-                    <main className="flex-1 rounded-2xl md:rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-[var(--border-color)] overflow-y-auto">
+                    <main className={`flex-1 rounded-2xl md:rounded-3xl bg-slate-900/60 backdrop-blur-2xl border border-[var(--border-color)] overflow-y-auto main-content-wrapper ${getViewBackgroundColorClass()}`}>
                         <div key={currentViewKey} className="animate-fadeInUp">
                            {renderMainContent()}
                         </div>
