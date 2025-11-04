@@ -101,7 +101,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ projects, clients, users, onU
 
     return (
         <div className="flex gap-6 overflow-x-auto p-4 h-full">
-            {columns.map(status => (
+            {columns.map(status => {
+                const projectsInColumn = projects.filter(p => p.status === status);
+                return (
                 <div 
                     key={status}
                     onDrop={(e) => handleDrop(e, status)}
@@ -110,17 +112,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ projects, clients, users, onU
                     onDragLeave={handleDragLeave}
                     className={`
                         w-80 flex-shrink-0 bg-slate-900/30 rounded-xl flex flex-col
-                        transition-colors duration-300 border-2 border-transparent
-                        ${draggedOverColumn === status ? 'border-green-500/50 bg-green-500/5' : ''}
+                        transition-colors duration-300
+                        ${draggedOverColumn === status ? 'bg-green-500/5' : ''}
                     `}
                 >
                     <div className={`p-4 border-b-2 ${statusStyles[status].border} sticky top-0 bg-slate-900/50 rounded-t-xl z-10 backdrop-blur-sm`}>
                         <h3 className={`font-display text-lg tracking-wide ${statusStyles[status].text}`}>{status}</h3>
                     </div>
                     <div className="p-2 flex-1 overflow-y-auto">
-                        <div className="p-2 h-full">
-                            {projects
-                                .filter(p => p.status === status)
+                        <div className={`p-2 h-full rounded-lg ${draggedOverColumn === status ? 'border-2 border-dashed border-slate-600' : 'border-2 border-transparent'}`}>
+                             {projectsInColumn.length === 0 && draggedOverColumn === status && (
+                                <div className="h-full flex items-center justify-center">
+                                    <p className="text-slate-500">Déposer le projet ici</p>
+                                </div>
+                            )}
+                            {projectsInColumn
                                 .map(project => {
                                     const client = clients.find(c => c.id === project.clientId);
                                     const team = users.filter(u => project.assignedEmployeeIds.includes(u.id));
@@ -130,7 +136,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ projects, clients, users, onU
                         </div>
                     </div>
                 </div>
-            ))}
+            )})}
         </div>
     );
 };

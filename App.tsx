@@ -126,8 +126,24 @@ const AppContent: React.FC = () => {
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Employé mis à jour', message: 'Les informations ont été mises à jour.' });
     };
     const handleDeleteEmployee = (employeeId: string) => {
+        // Unassign from projects
+        const updatedProjects = projects.map(p => ({
+            ...p,
+            assignedEmployeeIds: p.assignedEmployeeIds.filter(id => id !== employeeId)
+        }));
+        setProjects(updatedProjects);
+        // Unassign from clients
+        const updatedClients = clients.map(c => ({
+            ...c,
+            assignedEmployeeIds: c.assignedEmployeeIds.filter(id => id !== employeeId)
+        }));
+        setClients(updatedClients);
+        // Delete time logs
+        const updatedTimeLogs = timeLogs.filter(log => log.employeeId !== employeeId);
+        setTimeLogs(updatedTimeLogs);
+        // Delete user
         updateStateAndSync(setUsers, prev => prev.filter(user => user.id !== employeeId));
-        addNotification({ type: ToastNotificationType.INFO, title: 'Employé supprimé', message: "L'employé a été supprimé de la liste." });
+        addNotification({ type: ToastNotificationType.INFO, title: 'Employé supprimé', message: "L'employé et ses données associées ont été supprimés." });
     };
 
     // Clients
@@ -145,8 +161,25 @@ const AppContent: React.FC = () => {
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Client mis à jour', message: 'Les informations ont été mises à jour.' });
     };
     const handleDeleteClient = (clientId: string) => {
+        const projectsToDelete = projects.filter(p => p.clientId === clientId).map(p => p.id);
+
+        const updatedProjects = projects.filter(p => p.clientId !== clientId);
+        setProjects(updatedProjects);
+
+        const updatedChatMessages = chatMessages.filter(msg => !projectsToDelete.includes(msg.projectId));
+        setChatMessages(updatedChatMessages);
+
+        const updatedTimeLogs = timeLogs.filter(log => !projectsToDelete.includes(log.projectId));
+        setTimeLogs(updatedTimeLogs);
+
+        const updatedUsers = users.map(u => ({
+            ...u,
+            assignedClientIds: u.assignedClientIds?.filter(id => id !== clientId)
+        }));
+        setUsers(updatedUsers);
+
         updateStateAndSync(setClients, prev => prev.filter(client => client.id !== clientId));
-        addNotification({ type: ToastNotificationType.INFO, title: 'Client supprimé', message: 'Le client a été supprimé de la liste.' });
+        addNotification({ type: ToastNotificationType.INFO, title: 'Client supprimé', message: 'Le client et tous ses projets associés ont été supprimés.' });
     };
 
     // Projects
@@ -187,8 +220,14 @@ const AppContent: React.FC = () => {
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Projet mis à jour', message: 'Les détails du projet ont été mis à jour.' });
     };
     const handleDeleteProject = (projectId: string) => {
+        const updatedChatMessages = chatMessages.filter(msg => msg.projectId !== projectId);
+        setChatMessages(updatedChatMessages);
+        
+        const updatedTimeLogs = timeLogs.filter(log => log.projectId !== projectId);
+        setTimeLogs(updatedTimeLogs);
+
         updateStateAndSync(setProjects, prev => prev.filter(project => project.id !== projectId));
-        addNotification({ type: ToastNotificationType.INFO, title: 'Projet supprimé', message: 'Le projet a été supprimé de la liste.' });
+        addNotification({ type: ToastNotificationType.INFO, title: 'Projet supprimé', message: 'Le projet et ses données associées ont été supprimés.' });
     };
 
     // Chat

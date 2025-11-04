@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -23,7 +24,6 @@ function usePersistentState<T>(key: string, initialValue: T): [T, React.Dispatch
     try {
       window.localStorage.setItem(key, JSON.stringify(state));
     } catch (error) {
-      // FIX: Used double quotes to avoid syntax error with the apostrophe.
       console.error("Erreur d'écriture dans localStorage", error);
     }
   }, [key, state]);

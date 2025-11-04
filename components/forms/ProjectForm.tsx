@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Project, Client, User, ProjectStatus } from '../../types';
 import Modal from '../Modal';
@@ -17,6 +18,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
   const [clientId, setClientId] = useState('');
   const [status, setStatus] = useState<ProjectStatus>(ProjectStatus.NOT_STARTED);
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState('');
 
   useEffect(() => {
     if (project) {
@@ -32,6 +34,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
       setStatus(ProjectStatus.NOT_STARTED);
       setAssignedEmployeeIds([]);
     }
+    setEmployeeSearch('');
   }, [project, isOpen, clients]);
 
   const handleEmployeeToggle = (employeeId: string) => {
@@ -44,8 +47,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!clientId) {
+        alert("Veuillez sélectionner un client.");
+        return;
+    }
     onSave({ name, description, clientId, status, assignedEmployeeIds });
   };
+  
+  const filteredEmployees = employees.filter(emp => 
+    emp.name.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={project ? 'Modifier le projet' : 'Ajouter un nouveau projet'}>
@@ -53,7 +64,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">Nom du projet</label>
-            <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="block w-full rounded-md shadow-sm form-input text-slate-100" required />
+            <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="block w-full rounded-md shadow-sm form-input text-slate-100" required autoFocus/>
           </div>
           <div>
             <label htmlFor="client" className="block text-sm font-medium text-slate-300 mb-1">Client</label>
@@ -73,9 +84,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300">Assigner une équipe</label>
-            <div className="mt-2 p-2 border border-slate-700 rounded-md max-h-32 overflow-y-auto space-y-1 bg-slate-900">
-              {employees.map(emp => (
+            <label className="block text-sm font-medium text-slate-300 mb-2">Assigner une équipe</label>
+            <input 
+              type="text"
+              placeholder="Rechercher un employé..."
+              value={employeeSearch}
+              onChange={e => setEmployeeSearch(e.target.value)}
+              className="block w-full rounded-md shadow-sm form-input text-slate-100 mb-2"
+            />
+            <div className="p-2 border border-slate-700 rounded-md max-h-32 overflow-y-auto space-y-1 bg-slate-900">
+              {filteredEmployees.map(emp => (
                 <div key={emp.id} className="flex items-center p-1 rounded-md hover:bg-slate-700">
                   <input
                     type="checkbox"
@@ -87,12 +105,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSave, proj
                   <label htmlFor={`emp-${emp.id}`} className="ml-2 text-sm text-slate-300">{emp.name}</label>
                 </div>
               ))}
+               {filteredEmployees.length === 0 && <p className="text-sm text-slate-500 text-center p-2">Aucun employé trouvé.</p>}
             </div>
           </div>
         </div>
         <div className="flex justify-end space-x-4 mt-6">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-slate-600 text-slate-200 hover:bg-slate-500 font-semibold transition-colors">Annuler</button>
-          <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold transition-colors shadow-lg shadow-green-600/20 hover:shadow-green-600/30">Enregistrer le projet</button>
+          <button type="submit" disabled={!name || !clientId} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold transition-colors shadow-lg shadow-green-600/20 hover:shadow-green-600/30 disabled:bg-slate-500 disabled:shadow-none disabled:cursor-not-allowed">Enregistrer le projet</button>
         </div>
       </form>
     </Modal>

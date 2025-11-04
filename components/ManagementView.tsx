@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Client, UserRole } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -189,6 +190,7 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                     onClose={handleCloseModals} 
                     onSave={handleSave} 
                     employee={selectedItem as User | null} 
+                    clients={clients}
                 />
             ) : (
                 <ClientForm 
@@ -196,6 +198,7 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                     onClose={handleCloseModals} 
                     onSave={handleSave} 
                     client={selectedItem as Client | null} 
+                    employees={users.filter(u => u.role === UserRole.EMPLOYEE)}
                 />
             )}
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { ShieldCheckIcon, UsersIcon, ClientsIcon, ArrowUturnLeftIcon } from './icons';
@@ -7,8 +8,6 @@ interface LoginScreenProps {
     onLogin: (user: User) => void;
 }
 
-// FIX: Replaced JSX.Element with React.ReactNode to resolve "Cannot find namespace 'JSX'" error.
-// React.ReactNode is a more robust type for elements that can be rendered.
 const roleDetails: { [key in UserRole]: { icon: React.ReactNode; name: string; description: string } } = {
     [UserRole.ADMIN]: {
         icon: <ShieldCheckIcon className="w-10 h-10" />,
