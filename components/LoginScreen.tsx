@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { ShieldCheckIcon, UsersIcon, ClientsIcon, ArrowUturnLeftIcon } from './icons';
@@ -37,14 +38,16 @@ const RoleCard: React.FC<{
         <div
             onClick={onClick}
             className={`
-                group bg-slate-900/30 rounded-3xl p-6 flex flex-col items-center text-center cursor-pointer 
+                group relative bg-slate-900/50 rounded-3xl p-6 flex flex-col items-center text-center cursor-pointer 
                 transition-all duration-500 ease-in-out transform-gpu 
-                border ${isSelected ? 'border-green-500 shadow-2xl shadow-green-600/20' : 'border-white/10 hover:border-white/20'}
-                ${isAnyRoleSelected && !isSelected ? 'opacity-30 scale-90 hover:opacity-100' : 'opacity-100 hover:-translate-y-2'}
+                border border-transparent
+                ${isSelected ? 'border-telya-green shadow-2xl shadow-telya-green/20' : 'border-white/10 hover:border-white/20'}
+                ${isAnyRoleSelected && !isSelected ? 'opacity-40 scale-95 hover:opacity-100 hover:scale-100' : 'opacity-100 hover:-translate-y-2'}
             `}
         >
+             <div className={`absolute -inset-px rounded-3xl border border-telya-green/60 transition-opacity duration-500 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
             <div className={`
-                mb-4 text-green-400 transition-transform duration-500
+                mb-4 text-telya-green transition-transform duration-500
                 ${isSelected ? 'scale-110' : 'group-hover:scale-110'}
             `}>
                 {details.icon}
@@ -121,18 +124,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     }
 
     return (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 dot-grid">
-           <div className="w-full max-w-4xl mx-auto">
-                <div className="text-center mb-10">
+        <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 aurora-bg">
+           <div className="w-full max-w-4xl mx-auto relative z-10">
+                <div className="text-center mb-10 animate-fadeInUp">
                     <h1 className="font-display text-5xl md:text-7xl tracking-wide text-white">
-                        Bienvenue sur <span className="text-green-500 text-glow">Telya</span>
+                        Bienvenue sur <span className="text-telya-green text-glow">Telya</span>
                     </h1>
-                    <p className="text-slate-300 mt-4 text-lg max-w-2xl mx-auto">
+                    <p className="text-slate-300 mt-4 text-lg max-w-2xl mx-auto transition-all duration-300">
                        {getTitle()}
                     </p>
                 </div>
                 
-                <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 transition-all duration-500">
+                <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-white/10 p-8 transition-all duration-500 animate-fadeInUp animation-delay-200">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                        {(Object.keys(roleDetails) as UserRole[]).map(role => (
                             <RoleCard
@@ -154,7 +157,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
                         </div>
                         
                         {selectedRole === UserRole.ADMIN && (
-                             <form onSubmit={handleAdminLogin} className="w-full max-w-sm mx-auto flex flex-col items-center gap-4">
+                             <form onSubmit={handleAdminLogin} className="w-full max-w-sm mx-auto flex flex-col items-center gap-4 animate-fadeInUp">
                                 <input
                                     type="password"
                                     value={adminPassword}
@@ -170,7 +173,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
                                 {error && <p className="text-red-400 text-sm -mt-2">{error}</p>}
                                 <button
                                     type="submit"
-                                    className="w-full px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold transition-colors shadow-lg shadow-green-600/20"
+                                    className="w-full px-6 py-3 rounded-lg bg-telya-green text-slate-900 hover:bg-emerald-500 font-semibold transition-all duration-300 shadow-lg shadow-telya-green/20 transform hover:scale-105"
                                 >
                                     Se Connecter
                                 </button>
@@ -178,7 +181,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
                         )}
 
                         {(selectedRole === UserRole.EMPLOYEE || selectedRole === UserRole.CLIENT) && (
-                            <form onSubmit={handleUserLogin} className="w-full max-w-sm mx-auto flex flex-col items-center gap-4">
+                            <form onSubmit={handleUserLogin} className="w-full max-w-sm mx-auto flex flex-col items-center gap-4 animate-fadeInUp">
                                 <input
                                     type="email"
                                     value={credential}
@@ -194,7 +197,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
                                 {error && <p className="text-red-400 text-sm -mt-2">{error}</p>}
                                 <button
                                     type="submit"
-                                    className="w-full px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold transition-colors shadow-lg shadow-green-600/20"
+                                    className="w-full px-6 py-3 rounded-lg bg-telya-green text-slate-900 hover:bg-emerald-500 font-semibold transition-all duration-300 shadow-lg shadow-telya-green/20 transform hover:scale-105"
                                 >
                                     Accéder à mon espace
                                 </button>

@@ -6,6 +6,17 @@ export enum UserRole {
   CLIENT = 'Client'
 }
 
+export type View = 
+  // Admin
+  | 'dashboard' | 'projects' | 'team' | 'messages' | 'reports' | 'billing' | 'ai-insights' | 'files' | 'settings' | 'activity-log'
+  // Employee
+  | 'my-projects' | 'my-tasks' | 'calendar' | 'time-tracking' | 'project-files' | 'my-performance' | 'profile'
+  // Client
+  | 'client-dashboard' | 'client-projects' | 'support' | 'deliverables' | 'client-billing' | 'feedback' | 'client-profile'
+  // Common
+  | 'login';
+
+
 export enum ProjectStatus {
   NOT_STARTED = 'Non commencé',
   IN_PROGRESS = 'En cours',
@@ -20,6 +31,7 @@ export interface Project {
   assignedEmployeeIds: string[];
   status: ProjectStatus;
   description: string;
+  dueDate?: string; // YYYY-MM-DD for calendar view
 }
 
 export interface Client {
@@ -40,6 +52,7 @@ export interface User {
   role: UserRole;
   position?: string; // For employees
   assignedClientIds?: string[]; // For employees
+  activityStatus?: 'online' | 'offline' | 'paused';
 }
 
 export interface ChatMessage {
@@ -88,4 +101,50 @@ export interface ActiveTimer {
   projectId: string;
   employeeId: string;
   startTime: number; // Date.now() timestamp
+}
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  action: string;
+  timestamp: Date;
+  details?: string;
+}
+
+export interface Invoice {
+    id: string;
+    clientId: string;
+    projectId?: string;
+    amount: number;
+    issueDate: string; // YYYY-MM-DD
+    dueDate: string; // YYYY-MM-DD
+    status: 'Paid' | 'Sent' | 'Draft' | 'Overdue';
+}
+
+export interface ProjectFile {
+    id: string;
+    projectId: string;
+    name: string;
+    type: 'PDF' | 'Image' | 'Document' | 'Spreadsheet' | 'Other';
+    size: string; // e.g., "1.2 MB"
+    uploadedBy: string; // userId
+    lastModified: Date;
+    isDeliverable?: boolean;
+}
+
+export interface Task {
+  id: string;
+  projectId: string;
+  employeeId: string;
+  title: string;
+  status: 'To Do' | 'In Progress' | 'Completed';
+}
+
+export interface Feedback {
+  id: string;
+  clientId: string;
+  projectId: string;
+  rating: number; // 1-5
+  comment: string;
+  timestamp: Date;
 }

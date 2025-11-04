@@ -53,9 +53,19 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
     }
   }, [chatMessages, selectedProjectId]);
   
-  const myProjects = currentUser.role === UserRole.ADMIN 
-    ? projects
-    : projects.filter(p => p.assignedEmployeeIds.includes(currentUser.id));
+  const myProjects = useMemo(() => {
+    if (currentUser.role === UserRole.ADMIN) {
+      return projects;
+    }
+    if (currentUser.role === UserRole.EMPLOYEE) {
+      return projects.filter(p => p.assignedEmployeeIds.includes(currentUser.id));
+    }
+    // For clients, the projects are pre-filtered in App.tsx
+    if (currentUser.role === UserRole.CLIENT) {
+      return projects;
+    }
+    return [];
+  }, [currentUser, projects]);
 
   const conversations: Conversation[] = myProjects.map(project => {
     const projectMessages = chatMessages.filter(m => m.projectId === project.id);
@@ -130,33 +140,43 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
         <div className="p-5 border-b border-white/10">
           <h2 className="font-display text-2xl tracking-wide text-white">Conversations</h2>
         </div>
-        <ul className="overflow-y-auto flex-1">
-          {conversations.map(({ project, lastMessage, isUnread }) => {
-            const client = getClientById(project.clientId);
-            const isSelected = selectedProjectId === project.id;
-            return (
-              <li key={project.id}>
-                <button
-                  onClick={() => handleConversationSelect(project.id)}
-                  className={`w-full text-left p-4 border-b border-slate-900/50 hover:bg-slate-700/50 transition-colors duration-200 relative ${isSelected ? 'bg-slate-700/60' : ''}`}
-                >
-                  {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-full shadow-[0_0_10px_theme(colors.green.500)]"></div>}
-                  {isUnread && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_theme(colors.green.500)]"></div>}
-                  <div className="flex justify-between items-center mb-1">
-                    <p className={`truncate pr-8 ${isUnread ? 'font-bold text-white' : 'font-semibold text-slate-200'}`}>{project.name}</p>
-                    {lastMessage && <p className="text-xs text-slate-400 flex-shrink-0 ml-2">{new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
-                  </div>
-                  <p className="text-sm text-slate-400 truncate">
-                    {client?.companyName}
-                  </p>
-                  <p className="text-sm text-slate-500 truncate mt-1">
-                    {lastMessage ? lastMessage.text : 'Aucun message pour le moment.'}
-                  </p>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="overflow-y-auto flex-1">
+          {conversations.length > 0 ? (
+            <ul>
+              {conversations.map(({ project, lastMessage, isUnread }) => {
+                const client = getClientById(project.clientId);
+                const isSelected = selectedProjectId === project.id;
+                return (
+                  <li key={project.id}>
+                    <button
+                      onClick={() => handleConversationSelect(project.id)}
+                      className={`w-full text-left p-4 border-b border-slate-900/50 hover:bg-slate-700/50 transition-colors duration-200 relative ${isSelected ? 'bg-slate-700/60' : ''}`}
+                    >
+                      {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-full shadow-[0_0_10px_theme(colors.green.500)]"></div>}
+                      {isUnread && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-green-500 rounded-full shadow-[0_0_8px_theme(colors.green.500)]"></div>}
+                      <div className="flex justify-between items-center mb-1">
+                        <p className={`truncate pr-8 ${isUnread ? 'font-bold text-white' : 'font-semibold text-slate-200'}`}>{project.name}</p>
+                        {lastMessage && <p className="text-xs text-slate-400 flex-shrink-0 ml-2">{new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
+                      </div>
+                      <p className="text-sm text-slate-400 truncate">
+                        {client?.companyName}
+                      </p>
+                      <p className="text-sm text-slate-500 truncate mt-1">
+                        {lastMessage ? lastMessage.text : 'Aucun message pour le moment.'}
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+           ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 p-4 text-center">
+                    <EnvelopeIcon className="w-16 h-16 mb-4" />
+                    <h3 className="font-display text-xl text-white">Boîte de réception vide</h3>
+                    <p>Aucune conversation pour le moment.</p>
+                </div>
+            )}
+        </div>
       </div>
 
       {/* Chat View */}

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { CloseIcon } from './icons';
 
@@ -14,14 +15,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 backdrop-blur-md" 
+      className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4 backdrop-blur-xl animate-gradient-fade" 
       onClick={onClose}
     >
       <div 
-        className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-xl w-full max-w-lg relative max-h-[90vh] flex flex-col border border-white/10" 
+        className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-xl w-full max-w-lg relative max-h-[90vh] flex flex-col border border-[var(--border-color)] animate-scaleIn" 
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-5 border-b border-white/10 sticky top-0 bg-slate-900/80 z-10 rounded-t-2xl">
+        <div className="flex justify-between items-center p-5 border-b border-[var(--border-color)] sticky top-0 bg-slate-900/80 z-10 rounded-t-2xl">
           <h3 className="font-display text-xl font-semibold text-white">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <CloseIcon className="w-6 h-6" />

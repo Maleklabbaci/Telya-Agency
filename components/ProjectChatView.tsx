@@ -1,3 +1,5 @@
+
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Project, ChatMessage, User, Client } from '../types';
 import { ArrowLeftIcon, PaperAirplaneIcon } from './icons';

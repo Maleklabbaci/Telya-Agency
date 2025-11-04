@@ -11,33 +11,52 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
-        --background-start: #1e293b;
+        --background-start: #0f172a;
         --background-end: #0f172a;
-        --card-bg: rgba(15, 23, 42, 0.4);
-        --border-color: rgba(255, 255, 255, 0.1);
-        --primary-green: #22c55e;
-        --primary-green-dark: #16a34a;
+        --primary-accent: #34d399; /* emerald-400 */
+        --primary-accent-dark: #10b981; /* emerald-600 */
+        --primary-glow-color: rgba(52, 211, 153, 0.4);
         --text-light: #e2e8f0;
         --text-medium: #94a3b8;
         --text-dark: #64748b;
+        --card-bg: rgba(15, 23, 42, 0.5);
+        --border-color: rgba(255, 255, 255, 0.07);
+        --border-color-hover: rgba(52, 211, 153, 0.5);
       }
       body {
         font-family: 'Inter', sans-serif;
         background-color: var(--background-end);
-        background-image: radial-gradient(circle at top left, var(--background-start), var(--background-end));
+        color: var(--text-light);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      .dot-grid {
+      .aurora-bg {
+        background-color: #020617; /* slate-950 */
+        position: relative;
+        overflow: hidden;
+      }
+      .aurora-bg::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image:
+          radial-gradient(ellipse 200% 150% at 10% 10%, rgba(16, 185, 129, 0.15), transparent),
+          radial-gradient(ellipse 150% 100% at 80% 90%, rgba(30, 64, 175, 0.15), transparent);
+        animation: aurora 15s linear infinite;
+        z-index: 0;
+      }
+       .dot-grid {
         background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
         background-size: 2rem 2rem;
       }
       .form-input {
-        background-color: #0f172a80;
-        border: 1px solid #334155;
+        background-color: rgba(15, 23, 42, 0.5);
+        border: 1px solid var(--border-color);
         transition: border-color 0.2s, box-shadow 0.2s;
       }
       .form-input:focus {
-        border-color: var(--primary-green);
-        box-shadow: 0 0 0 2px var(--primary-green-dark), 0 0 10px var(--primary-green);
+        border-color: var(--primary-accent);
+        box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.3), 0 0 10px rgba(52, 211, 153, 0.2);
         outline: none;
       }
       .form-select {
@@ -50,14 +69,17 @@
         print-color-adjust: exact;
       }
       .text-glow {
-        text-shadow: 0 0 8px currentColor;
+        text-shadow: 0 0 8px var(--primary-glow-color);
+      }
+      .shadow-glow {
+        box-shadow: 0 0 15px var(--primary-glow-color);
       }
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.1);
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
         background-color: #1e293b;
@@ -66,6 +88,13 @@
       }
       ::-webkit-scrollbar-thumb:hover {
         background-color: #334155;
+      }
+      
+      /* Animations */
+      @keyframes aurora {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
       @keyframes shake {
         10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -76,6 +105,43 @@
       .shake {
         animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
       }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translate3d(0, 20px, 0);
+        }
+        to {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+      }
+       .animate-fadeInUp {
+        animation: fadeInUp 0.5s ease-out forwards;
+      }
+      
+       @keyframes scaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animate-scaleIn {
+        animation: scaleIn 0.3s ease-out forwards;
+      }
+      
+      @keyframes gradient-fade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-gradient-fade {
+         animation: gradient-fade 0.3s ease-out forwards;
+      }
+
     </style>
     <script>
       tailwind.config = {
@@ -97,21 +163,31 @@
                 '600': '#475569',
                 '700': '#334155',
                 '800': '#1e293b',
-                '900': '#0f172a'
+                '900': '#0f172a',
+                '950': '#020617'
               },
-              green: {
-                '50': '#f0fdf4',
-                '100': '#dcfce7',
-                '200': '#bbf7d0',
-                '300': '#86efac',
-                '400': '#4ade80',
-                '500': '#22c55e',
-                '600': '#16a34a',
-                '700': '#15803d',
-                '800': '#166534',
-                '900': '#14532d',
-                '950': '#052e16'
+              telya: {
+                green: 'var(--primary-accent)'
               }
+            },
+            animation: {
+              fadeInUp: 'fadeInUp 0.5s ease-out forwards',
+              scaleIn: 'scaleIn 0.3s ease-out forwards',
+              'gradient-fade': 'gradient-fade 0.3s ease-out forwards'
+            },
+            keyframes: {
+              fadeInUp: {
+                from: { opacity: 0, transform: 'translate3d(0, 20px, 0)' },
+                to: { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+              },
+              scaleIn: {
+                from: { opacity: 0, transform: 'scale(0.95)' },
+                to: { opacity: 1, transform: 'scale(1)' },
+              },
+              'gradient-fade': {
+                from: { opacity: 0 },
+                to: { opacity: 1 },
+              },
             }
           }
         }

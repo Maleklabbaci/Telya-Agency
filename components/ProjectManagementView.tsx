@@ -47,7 +47,7 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <DotsVerticalIcon className="w-5 h-5" />
             </button>
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-slate-800/90 backdrop-blur-lg rounded-lg shadow-lg py-1 z-20 border border-slate-700">
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800/90 backdrop-blur-lg rounded-lg shadow-lg py-1 z-20 border border-slate-700 animate-scaleIn origin-top-right">
                     {children}
                 </div>
             )}
@@ -126,7 +126,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                      <button
                         onClick={handleRefreshClick}
                         disabled={isRefreshing}
-                        className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white transition-colors disabled:cursor-wait disabled:text-green-400"
+                        className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white transition-colors disabled:cursor-wait disabled:text-telya-green"
                         aria-label="Rafraîchir les données"
                     >
                         <RefreshIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -134,21 +134,21 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                     <div className="flex items-center space-x-1 p-1 bg-slate-800/50 rounded-lg">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-green-600/20 text-green-400' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:text-white'}`}
                             aria-label="Vue grille"
                         >
                             <ViewGridIcon className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setViewMode('kanban')}
-                            className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-green-600/20 text-green-400' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-telya-green/20 text-telya-green' : 'text-slate-400 hover:text-white'}`}
                             aria-label="Vue Kanban"
                         >
                             <ViewColumnsIcon className="w-5 h-5" />
                         </button>
                     </div>
                     {isAdmin && (
-                        <button onClick={handleOpenAddModal} className="flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all duration-300">
+                        <button onClick={handleOpenAddModal} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
                             <PlusIcon className="w-5 h-5 mr-2" />
                             Nouveau Projet
                         </button>
@@ -156,11 +156,11 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                 </div>
             </div>
             
-            <div className={`bg-slate-900/30 rounded-2xl shadow-lg border-white/10 ${viewMode === 'kanban' ? 'flex-1 overflow-hidden' : 'p-1 md:p-0'}`}>
+            <div className={` ${viewMode === 'kanban' ? 'flex-1 overflow-hidden -mx-6 md:-mx-8 -mb-6 md:-mb-8' : 'p-1 md:p-0'}`}>
                  {projects.length > 0 ? (
                     viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 p-1 md:p-6">
-                            {projects.map(project => {
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {projects.map((project, index) => {
                                 const client = getClientById(project.clientId);
                                 const team = getEmployeesByIds(project.assignedEmployeeIds);
                                 const projectTimeLogs = timeLogs.filter(log => log.projectId === project.id);
@@ -176,10 +176,15 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                                 }
 
                                 return (
-                                    <div key={project.id} className="bg-slate-900/30 rounded-2xl p-5 border border-white/10 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-green-500/50 hover:shadow-2xl hover:shadow-green-500/10">
+                                    <div 
+                                        key={project.id} 
+                                        className="animate-fadeInUp group relative bg-slate-900/50 p-5 rounded-2xl border border-[var(--border-color)] flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-telya-green/10"
+                                        style={{ animationDelay: `${index * 50}ms` }}
+                                    >
+                                        <div className="absolute -inset-px rounded-2xl border border-telya-green/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true" />
                                         <div>
                                             <div className="flex justify-between items-start mb-2">
-                                                <h3 onClick={() => onViewDetails(project)} className="font-semibold text-white text-lg pr-4 cursor-pointer hover:text-green-400 transition-colors">{project.name}</h3>
+                                                <h3 onClick={() => onViewDetails(project)} className="font-semibold text-white text-lg pr-4 cursor-pointer hover:text-telya-green transition-colors">{project.name}</h3>
                                                 <ActionMenu>
                                                     <button onClick={() => onViewDetails(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Détails</button>
                                                     {isAdmin && (
@@ -202,7 +207,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                                              {(totalHours > 0 || project.status === ProjectStatus.COMPLETED) && (
                                                 <div className="mt-4">
                                                     <div className="w-full bg-slate-700 rounded-full h-1.5">
-                                                        <div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+                                                        <div className="bg-telya-green h-1.5 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs text-slate-400 mt-1">
                                                         <div className="flex items-center">

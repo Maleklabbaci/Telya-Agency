@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Client, UserRole } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -43,7 +44,7 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <DotsVerticalIcon className="w-5 h-5" />
             </button>
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-slate-800/90 backdrop-blur-lg rounded-lg shadow-lg py-1 z-20 border border-slate-700">
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800/90 backdrop-blur-lg rounded-lg shadow-lg py-1 z-20 border border-slate-700 animate-scaleIn origin-top-right">
                     {children}
                 </div>
             )}
@@ -98,57 +99,71 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
         handleCloseModals();
     };
 
-    const renderEmployeeCard = (user: User) => (
-      <div key={user.id} className="bg-slate-900/30 rounded-2xl p-5 border border-white/10 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-green-500/50 hover:shadow-2xl hover:shadow-green-500/10">
-        <div>
-          <div className="flex justify-between items-start mb-4">
-              <img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full" />
-              {isAdmin && (
-                  <ActionMenu>
-                      <button onClick={() => handleOpenEditModal(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                      <button onClick={() => handleOpenDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
-                  </ActionMenu>
-              )}
-          </div>
-          <p className="font-semibold text-white text-lg truncate">{user.name}</p>
-          <p className="text-sm text-slate-400">{user.position}</p>
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-sm">
-            <div className="flex items-center space-x-2 text-slate-400">
-              <BriefcaseIcon className="w-4 h-4"/>
-              <span>Clients Assignés</span>
+    const Card: React.FC<{ children: React.ReactNode; index: number }> = ({ children, index }) => (
+      <div
+        className="animate-fadeInUp group relative bg-slate-900/50 p-5 rounded-2xl border border-[var(--border-color)] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-telya-green/10"
+        style={{ animationDelay: `${index * 50}ms` }}
+      >
+        <div className="absolute -inset-px rounded-2xl border border-telya-green/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true" />
+        {children}
+      </div>
+    );
+
+    const renderEmployeeCard = (user: User, index: number) => (
+      <Card key={user.id} index={index}>
+        <div className="flex flex-col justify-between h-full">
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                  <img src={user.avatar} alt={user.name} className="w-16 h-16 rounded-full" />
+                  {isAdmin && (
+                      <ActionMenu>
+                          <button onClick={() => handleOpenEditModal(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                          <button onClick={() => handleOpenDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                      </ActionMenu>
+                  )}
+              </div>
+              <p className="font-semibold text-white text-lg truncate">{user.name}</p>
+              <p className="text-sm text-slate-400">{user.position}</p>
             </div>
-            <span className="font-semibold text-white bg-slate-700/50 px-2.5 py-1 rounded-full text-xs">{user.assignedClientIds?.length || 0}</span>
+            <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-sm">
+                <div className="flex items-center space-x-2 text-slate-400">
+                  <BriefcaseIcon className="w-4 h-4"/>
+                  <span>Clients Assignés</span>
+                </div>
+                <span className="font-semibold text-white bg-slate-700/50 px-2.5 py-1 rounded-full text-xs">{user.assignedClientIds?.length || 0}</span>
+            </div>
         </div>
-    </div>
+    </Card>
     );
     
-    const renderClientCard = (client: Client) => (
-       <div key={client.id} className="bg-slate-900/30 rounded-2xl p-5 border border-white/10 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:border-green-500/50 hover:shadow-2xl hover:shadow-green-500/10">
-          <div>
-            <div className="flex justify-between items-start mb-4">
-                <img src={client.logo} alt={client.companyName} className="w-16 h-16 p-2 object-contain bg-white rounded-full" />
-                {isAdmin && (
-                    <ActionMenu>
-                        {onViewClientProjects && (
-                            <button onClick={() => onViewClientProjects(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les projets</button>
-                        )}
-                        <button onClick={() => handleOpenEditModal(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                        <button onClick={() => handleOpenDeleteModal(client)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
-                    </ActionMenu>
-                )}
-            </div>
-            <p className="font-semibold text-white text-lg truncate">{client.companyName}</p>
-            <p className="text-sm text-slate-400">{client.contactName}</p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-sm">
-               <div className="flex items-center space-x-2 text-slate-400">
-                <UsersIcon className="w-4 h-4"/>
-                <span>Équipe Assignée</span>
+    const renderClientCard = (client: Client, index: number) => (
+       <Card key={client.id} index={index}>
+          <div className="flex flex-col justify-between h-full">
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                  <img src={client.logo} alt={client.companyName} className="w-16 h-16 p-2 object-contain bg-white rounded-full" />
+                  {isAdmin && (
+                      <ActionMenu>
+                          {onViewClientProjects && (
+                              <button onClick={() => onViewClientProjects(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les projets</button>
+                          )}
+                          <button onClick={() => handleOpenEditModal(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                          <button onClick={() => handleOpenDeleteModal(client)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                      </ActionMenu>
+                  )}
               </div>
-              <span className="font-semibold text-white bg-slate-700/50 px-2.5 py-1 rounded-full text-xs">{client.assignedEmployeeIds.length}</span>
+              <p className="font-semibold text-white text-lg truncate">{client.companyName}</p>
+              <p className="text-sm text-slate-400">{client.contactName}</p>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-sm">
+                 <div className="flex items-center space-x-2 text-slate-400">
+                  <UsersIcon className="w-4 h-4"/>
+                  <span>Équipe Assignée</span>
+                </div>
+                <span className="font-semibold text-white bg-slate-700/50 px-2.5 py-1 rounded-full text-xs">{client.assignedEmployeeIds.length}</span>
+            </div>
           </div>
-      </div>
+      </Card>
     );
 
 
@@ -159,19 +174,19 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                     {isEmployeeView ? 'Employés' : 'Clients'}
                 </h2>
                 {isAdmin && (
-                    <button onClick={handleOpenAddModal} className="flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all duration-300">
+                    <button onClick={handleOpenAddModal} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Ajouter {isEmployeeView ? 'un employé' : 'un client'}
                     </button>
                 )}
             </div>
             
-            <div className="bg-slate-900/30 rounded-2xl shadow-lg border-white/10 p-1 md:p-0">
+            <div className="p-1 md:p-0">
                 {items.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 p-1 md:p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                         {isEmployeeView 
-                            ? (items as User[]).map(renderEmployeeCard) 
-                            : (items as Client[]).map(renderClientCard)}
+                            ? (items as User[]).map((user, index) => renderEmployeeCard(user, index)) 
+                            : (items as Client[]).map((client, index) => renderClientCard(client, index))}
                     </div>
                 ) : (
                     <div className="text-center py-20 text-slate-400">

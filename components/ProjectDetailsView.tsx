@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { Project, Client, User, UserRole, TimeLog, ActiveTimer } from '../types';
-import { ArrowLeftIcon, ClientsIcon, UsersIcon, InformationCircleIcon, ChatBubbleLeftRightIcon, ClockIcon, PlayIcon, StopIcon } from './icons';
+import { Project, Client, User, UserRole, TimeLog, ActiveTimer, ProjectFile } from '../types';
+import { ArrowLeftIcon, ClientsIcon, UsersIcon, InformationCircleIcon, ChatBubbleLeftRightIcon, ClockIcon, PlayIcon, StopIcon, PlusIcon, FileTextIcon, DownloadIcon } from './icons';
 import TimeLogForm from './forms/TimeLogForm';
+import FileUploadModal from './forms/FileUploadModal';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-slate-900/30 p-6 rounded-2xl flex items-center space-x-4 border border-white/10">
@@ -22,6 +22,7 @@ interface ProjectDetailsViewProps {
   client: Client;
   team: User[];
   timeLogs: TimeLog[];
+  files: ProjectFile[];
   currentUser: User;
   users: User[];
   onBack: () => void;
@@ -29,10 +30,12 @@ interface ProjectDetailsViewProps {
   activeTimer: ActiveTimer | null;
   onStartTimer: (projectId: string) => void;
   onStopTimerAndLog: (logData: Omit<TimeLog, 'id' | 'employeeId'>) => void;
+  onAddFile: (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => void;
 }
 
-const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ project, client, team, timeLogs, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog }) => {
+const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ project, client, team, timeLogs, files, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog, onAddFile }) => {
   const [isTimeLogFormOpen, setIsTimeLogFormOpen] = useState(false);
+  const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [hoursForForm, setHoursForForm] = useState<number | undefined>(undefined);
   
@@ -77,6 +80,11 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ project, client
     setIsTimeLogFormOpen(false);
     setHoursForForm(undefined);
   };
+  
+  const handleFileUpload = (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified' | 'projectId'>) => {
+      onAddFile({ ...fileData, projectId: project.id });
+      setIsFileUploadModalOpen(false);
+  };
 
   const projectTimeLogs = timeLogs.filter(log => log.projectId === project.id).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const totalHours = projectTimeLogs.reduce((acc, log) => acc + log.hours, 0);
@@ -115,9 +123,47 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ project, client
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-slate-900/30 rounded-2xl shadow-lg p-6 border border-white/10">
-            <h3 className="font-display text-2xl tracking-wide text-white mb-4">Description du Projet</h3>
-            <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">{project.description}</p>
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-slate-900/30 rounded-2xl shadow-lg p-6 border border-white/10">
+              <h3 className="font-display text-2xl tracking-wide text-white mb-4">Description du Projet</h3>
+              <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">{project.description}</p>
+            </div>
+
+            {/* Files Section */}
+            <div className="bg-slate-900/30 rounded-2xl shadow-lg p-6 border border-white/10">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-display text-2xl tracking-wide text-white">Fichiers du Projet</h3>
+                {(isAdmin || isEmployeeOnProject) && (
+                  <button onClick={() => setIsFileUploadModalOpen(true)} className="flex items-center bg-telya-green/10 text-telya-green text-sm font-bold py-2 px-3 rounded-lg hover:bg-telya-green/20 transition-colors">
+                    <PlusIcon className="w-4 h-4 mr-2" />
+                    Ajouter un Fichier
+                  </button>
+                )}
+              </div>
+               {files.length > 0 ? (
+                <div className="space-y-3">
+                  {files.map(file => (
+                    <div key={file.id} className="bg-slate-800/50 p-3 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileTextIcon className="w-5 h-5 text-slate-400" />
+                        <div>
+                            <p className="font-semibold text-white">{file.name}</p>
+                            <p className="text-xs text-slate-400">
+                                {file.size} - Ajouté par {getUserById(file.uploadedBy)?.name}
+                            </p>
+                        </div>
+                      </div>
+                      <button className="p-2 rounded-full hover:bg-slate-700/50">
+                        <DownloadIcon className="w-5 h-5 text-slate-300" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-center py-8">Aucun fichier n'a encore été ajouté à ce projet.</p>
+              )}
+            </div>
+
           </div>
           
           <div className="bg-slate-900/30 rounded-2xl shadow-lg p-6 border border-white/10">
@@ -201,6 +247,11 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ project, client
         }}
         onSave={handleSaveTimeLog}
         initialHours={hoursForForm}
+      />
+      <FileUploadModal
+        isOpen={isFileUploadModalOpen}
+        onClose={() => setIsFileUploadModalOpen(false)}
+        onUpload={handleFileUpload}
       />
     </>
   );
