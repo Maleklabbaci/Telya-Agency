@@ -507,7 +507,7 @@ const AppContent: React.FC = () => {
             case 'my-team':
                 if (currentUser.role === UserRole.CLIENT) {
                      const myClientProfile = clients.find(c => c.contactEmail === currentUser.email);
-                     const myTeam = users.filter(user => myClientProfile?.assignedEmployeeIds.includes(user.id) && user.role === UserRole.EMPLOYEE);
+                     const myTeam = users.filter(user => myClientProfile?.assignedEmployeeIds?.includes(user.id) && user.role === UserRole.EMPLOYEE);
                      return (
                         <ManagementView type="employee" users={myTeam} clients={clients} currentUser={currentUser} onAdd={handleAddEmployee} onUpdate={handleUpdateEmployee} onDelete={handleDeleteEmployee} />
                     );

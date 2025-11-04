@@ -114,9 +114,8 @@ const EmployeeDashboard: React.FC<{ currentUser: User; projects: Project[]; clie
 const ClientDashboard: React.FC<{ currentUser: User; projects: Project[]; clients: Client[]; users: User[] }> = ({ currentUser, projects, clients, users }) => {
     const myClientProfile = clients.find(c => c.contactEmail === currentUser.email);
     const myProjects = projects.filter(p => p.clientId === myClientProfile?.id);
-    const accountManager = myClientProfile?.assignedEmployeeIds?.[0] 
-        ? users.find(u => u.id === myClientProfile.assignedEmployeeIds[0])
-        : null;
+    const accountManagerId = myClientProfile?.assignedEmployeeIds?.[0];
+    const accountManager = accountManagerId ? users.find(u => u.id === accountManagerId) : null;
 
     return (
         <div className="bg-slate-900/30 p-6 rounded-2xl border border-white/10">
