@@ -153,30 +153,51 @@ const AppContent: React.FC = () => {
             ...clientData,
             logo: `https://logo.clearbit.com/${clientData.companyName.toLowerCase().replace(/\s/g, '')}.com`,
         };
+         const newClientUser: User = {
+            id: `user-client-${Date.now()}`,
+            name: `${clientData.contactName} (Client)`,
+            email: clientData.contactEmail,
+            avatar: `https://i.pravatar.cc/150?u=user-client-${Date.now()}`,
+            role: UserRole.CLIENT,
+        };
+
+        setUsers(prev => [...prev, newClientUser]);
         updateStateAndSync(setClients, prev => [...prev, newClient]);
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Client ajouté', message: 'Le nouveau client a été ajouté avec succès.' });
     };
     const handleUpdateClient = (updatedClient: Client) => {
+        const oldClient = clients.find(c => c.id === updatedClient.id);
+        
+        // Update user account if contact details changed
+        if (oldClient && (oldClient.contactEmail !== updatedClient.contactEmail || oldClient.contactName !== updatedClient.contactName)) {
+            setUsers(prevUsers => prevUsers.map(user => 
+                user.role === UserRole.CLIENT && user.email === oldClient.contactEmail
+                ? { ...user, email: updatedClient.contactEmail, name: `${updatedClient.contactName} (Client)` }
+                : user
+            ));
+        }
+
         updateStateAndSync(setClients, prev => prev.map(client => client.id === updatedClient.id ? updatedClient : client));
         addNotification({ type: ToastNotificationType.SUCCESS, title: 'Client mis à jour', message: 'Les informations ont été mises à jour.' });
     };
     const handleDeleteClient = (clientId: string) => {
+        const clientToDelete = clients.find(c => c.id === clientId);
+        if (!clientToDelete) return;
+
         const projectsToDelete = projects.filter(p => p.clientId === clientId).map(p => p.id);
+        
+        setProjects(prev => prev.filter(p => p.clientId !== clientId));
+        setChatMessages(prev => prev.filter(msg => !projectsToDelete.includes(msg.projectId)));
+        setTimeLogs(prev => prev.filter(log => !projectsToDelete.includes(log.projectId)));
 
-        const updatedProjects = projects.filter(p => p.clientId !== clientId);
-        setProjects(updatedProjects);
-
-        const updatedChatMessages = chatMessages.filter(msg => !projectsToDelete.includes(msg.projectId));
-        setChatMessages(updatedChatMessages);
-
-        const updatedTimeLogs = timeLogs.filter(log => !projectsToDelete.includes(log.projectId));
-        setTimeLogs(updatedTimeLogs);
-
-        const updatedUsers = users.map(u => ({
-            ...u,
-            assignedClientIds: u.assignedClientIds?.filter(id => id !== clientId)
-        }));
-        setUsers(updatedUsers);
+        setUsers(prevUsers => 
+            prevUsers
+                .map(u => ({
+                    ...u,
+                    assignedClientIds: u.assignedClientIds?.filter(id => id !== clientId)
+                }))
+                .filter(u => u.role !== UserRole.CLIENT || u.email !== clientToDelete.contactEmail)
+        );
 
         updateStateAndSync(setClients, prev => prev.filter(client => client.id !== clientId));
         addNotification({ type: ToastNotificationType.INFO, title: 'Client supprimé', message: 'Le client et tous ses projets associés ont été supprimés.' });
