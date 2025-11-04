@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { User, Client, Task, Project } from '../types';
 import ManagementView from './ManagementView';
-import { UsersIcon, BriefcaseIcon } from './icons';
+import { UsersIcon, BriefcaseIcon, ShieldCheckIcon } from './icons';
 import EmployeeTasksModal from './EmployeeTasksModal';
 
 interface TeamViewProps {
@@ -21,7 +20,7 @@ interface TeamViewProps {
 }
 
 const TeamView: React.FC<TeamViewProps> = (props) => {
-    const [activeTab, setActiveTab] = useState<'employees' | 'clients'>('employees');
+    const [activeTab, setActiveTab] = useState<'employees' | 'clients' | 'admins'>('employees');
     const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
     const [selectedEmployeeForTasks, setSelectedEmployeeForTasks] = useState<User | null>(null);
 
@@ -53,6 +52,18 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                             <UsersIcon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === 'employees' ? 'text-telya-green' : 'text-slate-500 group-hover:text-slate-300'}`} />
                             <span>Employés</span>
                         </button>
+                         <button
+                            onClick={() => setActiveTab('admins')}
+                            className={`
+                                group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
+                                ${activeTab === 'admins' 
+                                    ? 'border-telya-green text-telya-green' 
+                                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500'}
+                            `}
+                        >
+                            <ShieldCheckIcon className={`-ml-0.5 mr-2 h-5 w-5 ${activeTab === 'admins' ? 'text-telya-green' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                            <span>Administrateurs</span>
+                        </button>
                         <button
                             onClick={() => setActiveTab('clients')}
                             className={`
@@ -80,6 +91,16 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                         onUpdate={props.onUpdateUser}
                         onDelete={props.onDeleteUser}
                         onViewEmployeeTasks={handleOpenTasksModal}
+                    />
+                ) : activeTab === 'admins' ? (
+                     <ManagementView 
+                        type="admin"
+                        users={props.users}
+                        clients={props.clients}
+                        currentUser={props.currentUser}
+                        onAdd={props.onAddUser}
+                        onUpdate={props.onUpdateUser}
+                        onDelete={props.onDeleteUser}
                     />
                 ) : (
                     <ManagementView 

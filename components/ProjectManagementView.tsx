@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, User, Client, UserRole, ProjectStatus, TimeLog, Task } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -166,7 +162,6 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
         setTimeout(() => setIsRefreshing(false), 1000);
     };
 
-    // FIX: Typed the initial value for `reduce` to ensure `tasksByProject` is correctly typed as a record of task arrays. This prevents TypeScript from inferring it as `unknown`, which caused the subsequent `.map` call to fail.
     const tasksByProject = tasks.reduce((acc, task) => {
         if (!acc[task.projectId]) {
             acc[task.projectId] = [];

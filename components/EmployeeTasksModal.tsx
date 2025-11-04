@@ -1,7 +1,3 @@
-
-
-
-
 import React from 'react';
 import { User, Task, Project } from '../types';
 import Modal from './Modal';
@@ -29,8 +25,6 @@ const EmployeeTasksModal: React.FC<EmployeeTasksModalProps> = ({ isOpen, onClose
 
   const employeeTasks = tasks.filter(t => t.employeeId === employee.id);
   
-  // FIX: Corrected the type of `tasksByProject` by typing the initial value for `reduce`.
-  // Without this, TypeScript infers `{}`, which leads to `unknown` type, causing the `.map` function to fail.
   const tasksByProject = employeeTasks.reduce((acc, task) => {
     const project = projects.find(p => p.id === task.projectId);
     const projectName = project ? project.name : 'Projet Inconnu';

@@ -1,7 +1,3 @@
-
-
-
-
 import React from 'react';
 import { Task, Project, User } from '../types';
 
@@ -25,7 +21,6 @@ const statusOptions: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 const EmployeeTasksView: React.FC<EmployeeTasksViewProps> = ({ currentUser, tasks, projects, onUpdateTask }) => {
     const myTasks = tasks.filter(t => t.employeeId === currentUser.id);
 
-    // FIX: Provided a type for the initial accumulator in `reduce`. This ensures that `tasksByProject` is correctly typed, resolving the error where `.map` was called on an `unknown` value.
     const tasksByProject = myTasks.reduce((acc, task) => {
         if (!acc[task.projectId]) {
             acc[task.projectId] = [];
