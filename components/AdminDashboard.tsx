@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Project, ActivityLog, ProjectStatus, Invoice } from '../types';
+import { User, Project, ActivityLog, ProjectStatus, Invoice, Task } from '../types';
 import { BriefcaseIcon, DollarSignIcon, CheckCircleIcon, UsersIcon, BellIcon, ActivityLogIcon, TeamIcon, LightbulbIcon, PauseIcon } from './icons';
 
 interface AdminDashboardProps {
@@ -8,6 +8,7 @@ interface AdminDashboardProps {
     projects: Project[];
     activityLog: ActivityLog[];
     invoices: Invoice[];
+    tasks: Task[];
     onUpdateInvoice: (invoice: Invoice) => void;
     onViewProjectDetails: (project: Project) => void;
 }
@@ -39,7 +40,7 @@ const timeSince = (date: Date): string => {
     return `à l'instant`;
 };
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, projects, activityLog, invoices, onUpdateInvoice, onViewProjectDetails }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, projects, activityLog, invoices, tasks, onUpdateInvoice, onViewProjectDetails }) => {
     
     const getGreeting = () => {
         const hours = new Date().getHours();
@@ -49,13 +50,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, pro
     }
 
     const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS).length;
-    const monthlyRevenue = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'DZD', minimumFractionDigits: 0 }).format(1750000); // Mock data
-    const tasksCompleted = 32; // Mock data
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const monthlyRevenueRaw = invoices
+        .filter(invoice => {
+            const issueDate = new Date(invoice.issueDate);
+            return invoice.status === 'Paid' &&
+                   issueDate.getMonth() === currentMonth &&
+                   issueDate.getFullYear() === currentYear;
+        })
+        .reduce((total, invoice) => total + invoice.amount, 0);
+    const monthlyRevenue = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'DZD', minimumFractionDigits: 0 }).format(monthlyRevenueRaw);
+
+    const tasksCompleted = tasks.filter(t => t.status === 'Completed').length;
     const teamOnline = users.filter(u => u.role !== 'Client' && u.activityStatus === 'online').length;
 
     const employees = users.filter(u => u.role === 'Employee');
 
-    // FIX: Correctly type the accumulator for `reduce` to fix untyped function call error.
     const projectStatusCounts = projects.reduce((acc, project) => {
         acc[project.status] = (acc[project.status] || 0) + 1;
         return acc;

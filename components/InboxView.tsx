@@ -93,7 +93,7 @@ const InboxView: React.FC<InboxViewProps> = ({ currentUser, projects, clients, u
 
     const cursorPos = e.target.selectionStart || 0;
     const textUpToCursor = value.substring(0, cursorPos);
-    const mentionMatch = textUpToCursor.match(/@(\w*)$/);
+    const mentionMatch = textUpToCursor.match(/@([\p{L}\p{N}\s_]*)$/u);
 
     if (mentionMatch) {
       const query = mentionMatch[1].toLowerCase();

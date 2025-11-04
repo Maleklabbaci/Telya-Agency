@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Task, Project, User } from '../types';
 
@@ -23,14 +21,15 @@ const statusOptions: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 const EmployeeTasksView: React.FC<EmployeeTasksViewProps> = ({ currentUser, tasks, projects, onUpdateTask }) => {
     const myTasks = tasks.filter(t => t.employeeId === currentUser.id);
 
-    // FIX: The initial value for `reduce` was an untyped empty object `{}`, causing TypeScript
-    // to infer the type of `tasksByProject`'s values as `unknown`. By casting the initial 
-    // accumulator to `Record<string, Task[]>`, we ensure `projectTasks` is correctly 
-    // typed as `Task[]`, which has the `.map` method.
-    const tasksByProject = myTasks.reduce((acc, task) => {
-        (acc[task.projectId] = acc[task.projectId] || []).push(task);
+    // Fix: Replaced the reduce function with a more explicit version to help TypeScript's type inference.
+    // This ensures `projectTasks` is correctly typed as `Task[]` and not `unknown`.
+    const tasksByProject = myTasks.reduce<Record<string, Task[]>>((acc, task) => {
+        if (!acc[task.projectId]) {
+            acc[task.projectId] = [];
+        }
+        acc[task.projectId].push(task);
         return acc;
-    }, {} as Record<string, Task[]>);
+    }, {});
 
     const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Projet Inconnu';
 

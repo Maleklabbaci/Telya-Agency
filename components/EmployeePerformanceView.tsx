@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { User, TimeLog, Project, Task, ProjectStatus } from '../types';
 import { ClockIcon, BriefcaseIcon, CheckCircleIcon, TrendingUpIcon } from './icons';
@@ -62,7 +60,6 @@ const EmployeePerformanceView: React.FC<EmployeePerformanceViewProps> = ({ curre
                         return (
                             <li key={project.id}>
                                 <div className="flex justify-between items-center mb-1">
-                                    {/* FIX: Corrected malformed span tag */}
                                     <span className="text-slate-200">{project.name}</span>
                                     <span className="text-xs text-slate-400">{projectHours.toFixed(1)}h</span>
                                 </div>

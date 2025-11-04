@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { TimeLog, User, Project } from '../types';
 import { ClockIcon } from './icons';
@@ -15,7 +13,6 @@ const EmployeeTimeTrackingView: React.FC<EmployeeTimeTrackingViewProps> = ({ cur
 
     const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Projet Inconnu';
     
-    // FIX: Correctly type the accumulator for `reduce` to fix untyped function call error.
     const logsByDate = myTimeLogs.reduce((acc, log) => {
         (acc[log.date] = acc[log.date] || []).push(log);
         return acc;

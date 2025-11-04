@@ -9,7 +9,10 @@ interface MessageWithMentionsProps {
 const MessageWithMentions: React.FC<MessageWithMentionsProps> = ({ text, allUsers }) => {
   // Create a regex that matches any of the user names prefixed with @
   // This is a simplified approach. A more robust solution might handle names with special characters.
-  const userNamesForRegex = allUsers.map(u => u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const userNamesForRegex = allUsers
+    .map(u => u.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .sort((a, b) => b.length - a.length)
+    .join('|');
   const mentionRegex = new RegExp(`@(${userNamesForRegex})`, 'g');
 
   if (!userNamesForRegex) {
