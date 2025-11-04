@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF--8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Telya</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --background-start: #1e293b;
+        --background-end: #0f172a;
+        --card-bg: rgba(15, 23, 42, 0.4);
+        --border-color: rgba(255, 255, 255, 0.1);
+        --primary-green: #22c55e;
+        --primary-green-dark: #16a34a;
+        --text-light: #e2e8f0;
+        --text-medium: #94a3b8;
+        --text-dark: #64748b;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--background-end);
+        background-image: radial-gradient(circle at top left, var(--background-start), var(--background-end));
+      }
+      .dot-grid {
+        background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 2rem 2rem;
+      }
+      .form-input {
+        background-color: #0f172a80;
+        border: 1px solid #334155;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .form-input:focus {
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 2px var(--primary-green-dark), 0 0 10px var(--primary-green);
+        outline: none;
+      }
+      .form-select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .text-glow {
+        text-shadow: 0 0 8px currentColor;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.1);
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #1e293b;
+        border-radius: 10px;
+        border: 2px solid #0f172a;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: #334155;
+      }
+      @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+      }
+      .shake {
+        animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+             fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              display: ['DM Serif Display', 'serif'],
+            },
+            colors: {
+               slate: {
+                '50': '#f8fafc',
+                '100': '#f1f5f9',
+                '200': '#e2e8f0',
+                '300': '#cbd5e1',
+                '400': '#94a3b8',
+                '500': '#64748b',
+                '600': '#475569',
+                '700': '#334155',
+                '800': '#1e293b',
+                '900': '#0f172a'
+              },
+              green: {
+                '50': '#f0fdf4',
+                '100': '#dcfce7',
+                '200': '#bbf7d0',
+                '300': '#86efac',
+                '400': '#4ade80',
+                '500': '#22c55e',
+                '600': '#16a34a',
+                '700': '#15803d',
+                '800': '#166534',
+                '900': '#14532d',
+                '950': '#052e16'
+              }
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+</head>
+  <body class="font-sans text-slate-300">
+    <div id="root"></div>
+  </body>
+</html>

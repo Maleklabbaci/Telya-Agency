@@ -1,0 +1,5 @@
+{
+  "name": "Telya",
+  "description": "Une plateforme complète pour l'agence Telya pour gérer les employés, les clients et les projets, avec des vues dédiées pour les administrateurs, les employés et les clients.",
+  "requestFramePermissions": []
+}
