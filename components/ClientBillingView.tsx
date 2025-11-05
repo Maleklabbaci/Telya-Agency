@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Invoice, Client, User, Project } from '../types';
 import { BillingIcon } from './icons';
-import InvoiceDetailsModal from './InvoiceDetailsModal';
 
 interface ClientBillingViewProps {
     currentUser: User;
     invoices: Invoice[];
     clients: Client[];
     projects: Project[];
+    onOpenInvoiceDetails: (invoice: Invoice) => void;
 }
 
 type InvoiceStatus = 'Paid' | 'Sent' | 'Draft' | 'Overdue';
@@ -26,21 +26,13 @@ const statusLabels: Record<InvoiceStatus, string> = {
     'Overdue': 'En retard',
 };
 
-const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invoices, clients, projects }) => {
-    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-
+const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invoices, clients, projects, onOpenInvoiceDetails }) => {
     const myClientProfile = clients.find(c => c.contactEmail === currentUser.email);
     if (!myClientProfile) {
         return <div className="p-8 text-center">Profil client non trouvé.</div>;
     }
     
     const myInvoices = invoices.filter(inv => inv.clientId === myClientProfile.id && inv.status !== 'Draft');
-
-    const handleViewDetails = (invoice: Invoice) => {
-        setSelectedInvoice(invoice);
-        setDetailsModalOpen(true);
-    };
 
     return (
         <div className="p-6 md:p-8">
@@ -72,7 +64,7 @@ const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invo
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button 
-                                                onClick={() => handleViewDetails(invoice)} 
+                                                onClick={() => onOpenInvoiceDetails(invoice)} 
                                                 className="font-semibold text-telya-green hover:text-telya-green/80 text-xs">
                                                 Voir la facture
                                             </button>
@@ -90,14 +82,6 @@ const ClientBillingView: React.FC<ClientBillingViewProps> = ({ currentUser, invo
                     <p className="mt-1">Vos factures apparaîtront ici dès qu'elles seront émises.</p>
                 </div>
             )}
-
-            <InvoiceDetailsModal
-                isOpen={detailsModalOpen}
-                onClose={() => setDetailsModalOpen(false)}
-                invoice={selectedInvoice}
-                client={myClientProfile}
-                projectName={selectedInvoice?.projectId ? projects.find(p => p.id === selectedInvoice.projectId)?.name : undefined}
-            />
         </div>
     );
 };

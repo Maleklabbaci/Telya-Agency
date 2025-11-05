@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { User, Client, Task, Project } from '../types';
 import ManagementView from './ManagementView';
 import { UsersIcon, BriefcaseIcon, ShieldCheckIcon } from './icons';
-import EmployeeTasksModal from './EmployeeTasksModal';
 
 interface TeamViewProps {
   users: User[];
@@ -17,24 +16,14 @@ interface TeamViewProps {
   onUpdateClient: (data: any) => void;
   onDeleteClient: (id: string) => void;
   onViewClientProjects: (client: Client) => void;
+  onOpenFormModal: (item: User | Client | null, type: 'employee' | 'client' | 'admin') => void;
+  onOpenDeleteModal: (item: User | Client) => void;
+  onOpenEmployeeTasks: (employee: User) => void;
 }
 
 const TeamView: React.FC<TeamViewProps> = (props) => {
     const [activeTab, setActiveTab] = useState<'employees' | 'clients' | 'admins'>('employees');
-    const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
-    const [selectedEmployeeForTasks, setSelectedEmployeeForTasks] = useState<User | null>(null);
-
-    const handleOpenTasksModal = (employee: User) => {
-        setSelectedEmployeeForTasks(employee);
-        setIsTasksModalOpen(true);
-    };
-
-    const handleCloseTasksModal = () => {
-        setIsTasksModalOpen(false);
-        setSelectedEmployeeForTasks(null);
-    };
-
-
+    
     return (
         <div className="p-6 md:p-8 flex flex-col h-full">
             <div className="flex-shrink-0 mb-6">
@@ -90,7 +79,9 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                         onAdd={props.onAddUser}
                         onUpdate={props.onUpdateUser}
                         onDelete={props.onDeleteUser}
-                        onViewEmployeeTasks={handleOpenTasksModal}
+                        onViewEmployeeTasks={props.onOpenEmployeeTasks}
+                        onOpenFormModal={props.onOpenFormModal}
+                        onOpenDeleteModal={props.onOpenDeleteModal}
                     />
                 ) : activeTab === 'admins' ? (
                      <ManagementView 
@@ -101,6 +92,8 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                         onAdd={props.onAddUser}
                         onUpdate={props.onUpdateUser}
                         onDelete={props.onDeleteUser}
+                        onOpenFormModal={props.onOpenFormModal}
+                        onOpenDeleteModal={props.onOpenDeleteModal}
                     />
                 ) : (
                     <ManagementView 
@@ -112,17 +105,11 @@ const TeamView: React.FC<TeamViewProps> = (props) => {
                         onUpdate={props.onUpdateClient}
                         onDelete={props.onDeleteClient}
                         onViewClientProjects={props.onViewClientProjects}
+                        onOpenFormModal={props.onOpenFormModal}
+                        onOpenDeleteModal={props.onOpenDeleteModal}
                     />
                 )}
             </div>
-
-            <EmployeeTasksModal
-                isOpen={isTasksModalOpen}
-                onClose={handleCloseTasksModal}
-                employee={selectedEmployeeForTasks}
-                tasks={props.tasks}
-                projects={props.projects}
-            />
         </div>
     );
 };

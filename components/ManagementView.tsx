@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Client, UserRole } from '../types';
-import ConfirmationModal from './ConfirmationModal';
-import UserForm from './forms/EmployeeForm';
-import ClientForm from './forms/ClientForm';
 import { DotsVerticalIcon, PlusIcon, BriefcaseIcon, UsersIcon } from './icons';
 
 interface ManagementViewProps {
@@ -15,6 +12,8 @@ interface ManagementViewProps {
   onDelete: (id: string) => void;
   onViewClientProjects?: (client: Client) => void;
   onViewEmployeeTasks?: (employee: User) => void;
+  onOpenFormModal: (item: User | Client | null, type: 'employee' | 'client' | 'admin') => void;
+  onOpenDeleteModal: (item: User | Client) => void;
 }
 
 const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -46,60 +45,13 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 
-const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, currentUser, onAdd, onUpdate, onDelete, onViewClientProjects, onViewEmployeeTasks }) => {
+const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, currentUser, onAdd, onUpdate, onDelete, onViewClientProjects, onViewEmployeeTasks, onOpenFormModal, onOpenDeleteModal }) => {
     const isEmployeeView = type === 'employee';
     const isAdminView = type === 'admin';
     const items = isEmployeeView ? users.filter(u => u.role === UserRole.EMPLOYEE) 
                 : isAdminView ? users.filter(u => u.role === UserRole.ADMIN)
                 : clients;
     const isAdmin = currentUser.role === UserRole.ADMIN;
-
-    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<User | Client | null>(null);
-
-    const handleOpenAddModal = () => {
-        setSelectedItem(null);
-        setIsFormModalOpen(true);
-    };
-
-    const handleOpenEditModal = (item: User | Client) => {
-        setSelectedItem(item);
-        setIsFormModalOpen(true);
-    };
-
-    const handleOpenDeleteModal = (item: User | Client) => {
-        setSelectedItem(item);
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleCloseModals = () => {
-        setIsFormModalOpen(false);
-        setIsDeleteModalOpen(false);
-        setSelectedItem(null);
-    };
-    
-    const handleSave = (data: Omit<User, 'id'> | Omit<Client, 'id'>) => {
-        if (selectedItem) {
-            onUpdate({ ...selectedItem, ...data });
-        } else {
-            let dataWithRole = data;
-            if (isEmployeeView) {
-                dataWithRole = { ...data, role: UserRole.EMPLOYEE };
-            } else if (isAdminView) {
-                dataWithRole = { ...data, role: UserRole.ADMIN };
-            }
-            onAdd(dataWithRole);
-        }
-        handleCloseModals();
-    };
-
-    const handleDelete = () => {
-        if (selectedItem) {
-            onDelete(selectedItem.id);
-        }
-        handleCloseModals();
-    };
 
     const Card: React.FC<{ children: React.ReactNode; index: number }> = ({ children, index }) => (
       <div
@@ -120,8 +72,8 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                   {isAdmin && (
                       <ActionMenu>
                           {isEmployeeView && onViewEmployeeTasks && <button onClick={() => onViewEmployeeTasks(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les tâches</button>}
-                          <button onClick={() => handleOpenEditModal(user)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                          <button onClick={() => handleOpenDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                          <button onClick={() => onOpenFormModal(user, type)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                          <button onClick={() => onOpenDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
                       </ActionMenu>
                   )}
               </div>
@@ -152,8 +104,8 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                           {onViewClientProjects && (
                               <button onClick={() => onViewClientProjects(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les projets</button>
                           )}
-                          <button onClick={() => handleOpenEditModal(client)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                          <button onClick={() => handleOpenDeleteModal(client)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                          <button onClick={() => onOpenFormModal(client, 'client')} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                          <button onClick={() => onOpenDeleteModal(client)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
                       </ActionMenu>
                   )}
               </div>
@@ -179,7 +131,7 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                     {isEmployeeView ? 'Employés' : isAdminView ? 'Administrateurs' : 'Clients'}
                 </h2>
                 {isAdmin && (
-                    <button onClick={handleOpenAddModal} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
+                    <button onClick={() => onOpenFormModal(null, type)} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Ajouter {isEmployeeView ? 'un employé' : isAdminView ? 'un administrateur' : 'un client'}
                     </button>
@@ -203,33 +155,6 @@ const ManagementView: React.FC<ManagementViewProps> = ({ type, users, clients, c
                     </div>
                 )}
             </div>
-
-            {isEmployeeView || isAdminView ? (
-                <UserForm 
-                    isOpen={isFormModalOpen} 
-                    onClose={handleCloseModals} 
-                    onSave={handleSave} 
-                    user={selectedItem as User | null} 
-                    clients={clients}
-                    role={type === 'admin' ? UserRole.ADMIN : UserRole.EMPLOYEE}
-                />
-            ) : (
-                <ClientForm 
-                    isOpen={isFormModalOpen} 
-                    onClose={handleCloseModals} 
-                    onSave={handleSave} 
-                    client={selectedItem as Client | null} 
-                    employees={users.filter(u => u.role === UserRole.EMPLOYEE)}
-                />
-            )}
-
-            <ConfirmationModal 
-                isOpen={isDeleteModalOpen}
-                onClose={handleCloseModals}
-                onConfirm={handleDelete}
-                title={`Supprimer ${isEmployeeView ? "l'employé" : isAdminView ? "l'administrateur" : 'le client'}`}
-                message={`Êtes-vous sûr de vouloir supprimer ${selectedItem?.name || (selectedItem as Client)?.companyName}? Cette action est irréversible.`}
-            />
         </div>
     );
 };

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import ConfirmationModal from './ConfirmationModal';
 
 const ToggleSwitch: React.FC<{ label: string; enabled: boolean; setEnabled: (e: boolean) => void; }> = ({ label, enabled, setEnabled }) => (
     <div className="flex items-center justify-between">
@@ -18,16 +17,10 @@ const ToggleSwitch: React.FC<{ label: string; enabled: boolean; setEnabled: (e: 
 );
 
 
-const SettingsView: React.FC<{ onLogout: () => void; }> = ({ onLogout }) => {
+const SettingsView: React.FC<{ onLogout: () => void; onOpenDeleteConfirm: () => void; }> = ({ onLogout, onOpenDeleteConfirm }) => {
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [pushNotifications, setPushNotifications] = useState(false);
     const [darkMode, setDarkMode] = useState(true);
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    
-    const handleDeleteAccount = () => {
-        alert("Compte supprimé avec succès. Vous allez être déconnecté.");
-        onLogout();
-    };
 
     return (
         <div className="p-6 md:p-8">
@@ -53,18 +46,10 @@ const SettingsView: React.FC<{ onLogout: () => void; }> = ({ onLogout }) => {
                     <h3 className="font-display text-xl text-white mb-4">Compte</h3>
                     <div className="flex flex-col items-start space-y-4">
                        <button onClick={() => alert('Une fenêtre modale pour changer de mot de passe s\'ouvrirait ici.')} className="text-sm font-semibold text-telya-green hover:text-telya-green/80">Changer de mot de passe</button>
-                       <button onClick={() => setIsDeleteConfirmOpen(true)} className="text-sm font-semibold text-red-500 hover:text-red-400">Supprimer le compte</button>
+                       <button onClick={onOpenDeleteConfirm} className="text-sm font-semibold text-red-500 hover:text-red-400">Supprimer le compte</button>
                     </div>
                 </div>
             </div>
-            
-            <ConfirmationModal
-                isOpen={isDeleteConfirmOpen}
-                onClose={() => setIsDeleteConfirmOpen(false)}
-                onConfirm={handleDeleteAccount}
-                title="Supprimer le compte"
-                message="Êtes-vous absolument sûr ? Cette action est irréversible et toutes vos données seront perdues."
-            />
         </div>
     );
 };

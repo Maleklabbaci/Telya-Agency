@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, User, Client, UserRole, ProjectStatus, TimeLog, Task } from '../types';
-import ConfirmationModal from './ConfirmationModal';
-import ProjectForm from './forms/ProjectForm';
-import TaskForm from './forms/TaskForm';
 import { DotsVerticalIcon, PlusIcon, ClientsIcon, ProjectsIcon, ViewGridIcon, ViewColumnsIcon, ClockIcon, RefreshIcon, TasksIcon } from './icons';
 import KanbanBoard from './KanbanBoard';
 
@@ -21,6 +18,12 @@ interface ProjectManagementViewProps {
   onAddTask: (data: Omit<Task, 'id'>) => void;
   onUpdateTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
+  onOpenAddProject: () => void;
+  onOpenEditProject: (project: Project) => void;
+  onOpenDeleteProject: (project: Project) => void;
+  onOpenAddTask: () => void;
+  onOpenEditTask: (task: Task) => void;
+  onOpenDeleteTask: (task: Task) => void;
 }
 
 type TaskStatus = 'To Do' | 'In Progress' | 'Completed';
@@ -37,8 +40,6 @@ const taskStatusStyles: Record<TaskStatus, string> = {
     'In Progress': 'bg-blue-500/20 text-blue-400',
     'Completed': 'bg-green-500/20 text-green-400',
 };
-
-const taskStatusOptions: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 
 const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -69,92 +70,13 @@ const ActionMenu: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 
-const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects, users, clients, currentUser, timeLogs, tasks, onAdd, onUpdate, onDelete, onViewDetails, onManualRefresh, onAddTask, onUpdateTask, onDeleteTask }) => {
+const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects, users, clients, currentUser, timeLogs, tasks, onAdd, onUpdate, onDelete, onViewDetails, onManualRefresh, onAddTask, onUpdateTask, onDeleteTask, onOpenAddProject, onOpenEditProject, onOpenDeleteProject, onOpenAddTask, onOpenEditTask, onOpenDeleteTask }) => {
     const isAdmin = currentUser.role === UserRole.ADMIN;
-
     const [activeTab, setActiveTab] = useState<'projects' | 'tasks'>('projects');
-
-    const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
-    const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    
-    const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
-    const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
     const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const getClientName = (id: string) => clients.find(c => c.id === id)?.companyName || 'Inconnu';
-
-    const handleOpenAddProject = () => {
-        setSelectedProject(null);
-        setIsProjectFormOpen(true);
-    };
-    const handleOpenEditProject = (project: Project) => {
-        setSelectedProject(project);
-        setIsProjectFormOpen(true);
-    };
-    const handleOpenDeleteProject = (project: Project) => {
-        setSelectedProject(project);
-        setIsDeleteProjectModalOpen(true);
-    };
-
-    const handleOpenAddTask = () => {
-        setSelectedTask(null);
-        setIsTaskFormOpen(true);
-    };
-
-    const handleOpenEditTask = (task: Task) => {
-        setSelectedTask(task);
-        setIsTaskFormOpen(true);
-    };
-    
-    const handleOpenDeleteTask = (task: Task) => {
-        setSelectedTask(task);
-        setIsDeleteTaskModalOpen(true);
-    };
-
-    const handleCloseModals = () => {
-        setIsProjectFormOpen(false);
-        setIsDeleteProjectModalOpen(false);
-        setSelectedProject(null);
-        setIsTaskFormOpen(false);
-        setIsDeleteTaskModalOpen(false);
-        setSelectedTask(null);
-    };
-    
-    const handleSaveProject = (data: Omit<Project, 'id'>) => {
-        if (selectedProject) {
-            onUpdate({ ...selectedProject, ...data });
-        } else {
-            onAdd(data);
-        }
-        handleCloseModals();
-    };
-
-    const handleDeleteProject = () => {
-        if (selectedProject) {
-            onDelete(selectedProject.id);
-        }
-        handleCloseModals();
-    };
-
-    const handleSaveTask = (data: Omit<Task, 'id'>) => {
-        if (selectedTask) {
-            onUpdateTask({ ...selectedTask, ...data });
-        } else {
-            onAddTask(data);
-        }
-        handleCloseModals();
-    };
-
-    const handleDeleteTask = () => {
-        if (selectedTask) {
-            onDeleteTask(selectedTask.id);
-        }
-        handleCloseModals();
-    };
 
     const handleRefreshClick = () => {
         setIsRefreshing(true);
@@ -169,8 +91,6 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
         acc[task.projectId].push(task);
         return acc;
     }, {} as Record<string, Task[]>);
-
-    const employees = users.filter(u => u.role === UserRole.EMPLOYEE);
     
     return (
         <div className="p-4 md:p-8 flex flex-col h-full">
@@ -205,7 +125,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                            <button onClick={handleRefreshClick} className="p-2 rounded-lg text-slate-400 hover:bg-slate-700/50"><RefreshIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}/></button>
                         </div>
                         {isAdmin && (
-                            <button onClick={handleOpenAddProject} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
+                            <button onClick={onOpenAddProject} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105">
                                 <PlusIcon className="w-5 h-5 mr-2" />
                                 Ajouter un projet
                             </button>
@@ -226,8 +146,8 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                                                     <h3 className="font-semibold text-white text-lg pr-4">{project.name}</h3>
                                                     <ActionMenu>
                                                         <button onClick={() => onViewDetails(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Voir les détails</button>
-                                                        <button onClick={() => handleOpenEditProject(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                                                        <button onClick={() => handleOpenDeleteProject(project)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                                                        <button onClick={() => onOpenEditProject(project)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                                                        <button onClick={() => onOpenDeleteProject(project)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
                                                     </ActionMenu>
                                                 </div>
                                                 <div className="flex items-center space-x-2 text-sm text-slate-400 mb-4">
@@ -281,7 +201,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                 <div className={`flex-1 min-h-0 ${activeTab === 'tasks' ? 'flex flex-col' : 'hidden'}`}>
                      <div className="flex justify-between items-center mb-6">
                         <h2 className="font-display text-3xl tracking-wide text-white">Toutes les Tâches</h2>
-                        <button onClick={handleOpenAddTask} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300">
+                        <button onClick={onOpenAddTask} className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300">
                             <PlusIcon className="w-5 h-5 mr-2" />
                             Nouvelle Tâche
                         </button>
@@ -300,8 +220,8 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                                                     {assignee && <img src={assignee.avatar} alt={assignee.name} title={`Assigné à ${assignee.name}`} className="w-6 h-6 rounded-full"/>}
                                                     <span className={`text-xs font-semibold px-3 py-1 rounded-full ${taskStatusStyles[task.status]}`}>{task.status}</span>
                                                      <ActionMenu>
-                                                        <button onClick={() => handleOpenEditTask(task)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
-                                                        <button onClick={() => handleOpenDeleteTask(task)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
+                                                        <button onClick={() => onOpenEditTask(task)} className="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/50">Modifier</button>
+                                                        <button onClick={() => onOpenDeleteTask(task)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700/50">Supprimer</button>
                                                     </ActionMenu>
                                                 </div>
                                             </div>
@@ -314,37 +234,6 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ projects,
                 </div>
 
             </div>
-
-            <ProjectForm 
-                isOpen={isProjectFormOpen} 
-                onClose={handleCloseModals} 
-                onSave={handleSaveProject} 
-                project={selectedProject} 
-                clients={clients}
-                employees={employees}
-            />
-            <ConfirmationModal 
-                isOpen={isDeleteProjectModalOpen}
-                onClose={handleCloseModals}
-                onConfirm={handleDeleteProject}
-                title="Supprimer le projet"
-                message={`Êtes-vous sûr de vouloir supprimer ${selectedProject?.name}? Cette action est irréversible.`}
-            />
-             <TaskForm 
-                isOpen={isTaskFormOpen} 
-                onClose={handleCloseModals} 
-                onSave={handleSaveTask} 
-                task={selectedTask} 
-                projects={projects}
-                employees={employees}
-            />
-             <ConfirmationModal 
-                isOpen={isDeleteTaskModalOpen}
-                onClose={handleCloseModals}
-                onConfirm={handleDeleteTask}
-                title="Supprimer la tâche"
-                message={`Êtes-vous sûr de vouloir supprimer la tâche "${selectedTask?.title}"?`}
-            />
         </div>
     );
 };

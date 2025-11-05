@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Project, Client, User, UserRole, TimeLog, ActiveTimer, ProjectFile, Task } from '../types';
 import { ArrowLeftIcon, ClientsIcon, UsersIcon, InformationCircleIcon, ChatBubbleLeftRightIcon, ClockIcon, PlayIcon, StopIcon, PlusIcon, FileTextIcon, DownloadIcon, TasksIcon } from './icons';
-import TimeLogForm from './forms/TimeLogForm';
-import FileUploadModal from './forms/FileUploadModal';
 
 type TaskStatus = 'To Do' | 'In Progress' | 'Completed';
 
@@ -43,13 +41,12 @@ interface ProjectDetailsProps {
   onStopTimerAndLog: (logData: Omit<TimeLog, 'id' | 'employeeId'>) => void;
   onAddFile: (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => void;
   onUpdateTask: (task: Task) => void;
+  onOpenTimeLogForm: (hours?: number) => void;
+  onOpenFileUploadModal: () => void;
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, tasks, timeLogs, files, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog, onAddFile, onUpdateTask }) => {
-  const [isTimeLogFormOpen, setIsTimeLogFormOpen] = useState(false);
-  const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, tasks, timeLogs, files, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog, onAddFile, onUpdateTask, onOpenTimeLogForm, onOpenFileUploadModal }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [hoursForForm, setHoursForForm] = useState<number | undefined>(undefined);
   
   const isEmployeeOnProject = currentUser.role === UserRole.EMPLOYEE && project.assignedEmployeeIds.includes(currentUser.id);
   const isAdmin = currentUser.role === UserRole.ADMIN;
@@ -80,22 +77,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, 
   const handleStopTimer = () => {
     if (!activeTimer) return;
     const elapsedHours = (Date.now() - activeTimer.startTime) / (1000 * 60 * 60);
-    setHoursForForm(elapsedHours);
-    setIsTimeLogFormOpen(true);
-  };
-
-  const handleSaveTimeLog = (logData: { date: string; hours: number; description: string; }) => {
-    onStopTimerAndLog({
-      ...logData,
-      projectId: project.id,
-    });
-    setIsTimeLogFormOpen(false);
-    setHoursForForm(undefined);
-  };
-  
-  const handleFileUpload = (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified' | 'projectId'>) => {
-      onAddFile({ ...fileData, projectId: project.id });
-      setIsFileUploadModalOpen(false);
+    onOpenTimeLogForm(elapsedHours);
   };
 
   const projectTimeLogs = timeLogs.filter(log => log.projectId === project.id).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -179,7 +161,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, 
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-display text-2xl tracking-wide text-white">Fichiers du Projet</h3>
                 {(isAdmin || isEmployeeOnProject) && (
-                  <button onClick={() => setIsFileUploadModalOpen(true)} className="flex items-center bg-telya-green/10 text-telya-green text-sm font-bold py-2 px-3 rounded-lg hover:bg-telya-green/20 transition-colors">
+                  <button onClick={onOpenFileUploadModal} className="flex items-center bg-telya-green/10 text-telya-green text-sm font-bold py-2 px-3 rounded-lg hover:bg-telya-green/20 transition-colors">
                     <PlusIcon className="w-4 h-4 mr-2" />
                     Ajouter un Fichier
                   </button>
@@ -286,20 +268,6 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, 
           </div>
         </div>
       </div>
-      <TimeLogForm 
-        isOpen={isTimeLogFormOpen} 
-        onClose={() => {
-            setIsTimeLogFormOpen(false);
-            setHoursForForm(undefined);
-        }}
-        onSave={handleSaveTimeLog}
-        initialHours={hoursForForm}
-      />
-      <FileUploadModal
-        isOpen={isFileUploadModalOpen}
-        onClose={() => setIsFileUploadModalOpen(false)}
-        onUpload={handleFileUpload}
-      />
     </>
   );
 };

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Invoice, Client, User, UserRole, Project } from '../types';
 import { BillingIcon, FilterIcon, PlusIcon } from './icons';
-import InvoiceForm from './forms/InvoiceForm';
-import InvoiceDetailsModal from './InvoiceDetailsModal';
 
 interface BillingViewProps {
     invoices: Invoice[];
@@ -11,6 +9,8 @@ interface BillingViewProps {
     onAddInvoice: (data: Omit<Invoice, 'id'>) => void;
     onUpdateInvoice: (data: Invoice) => void;
     projects: Project[];
+    onOpenNewInvoice: () => void;
+    onOpenInvoiceDetails: (invoice: Invoice) => void;
 }
 
 type InvoiceStatus = 'Paid' | 'Sent' | 'Draft' | 'Overdue';
@@ -40,11 +40,8 @@ const getEffectiveStatus = (invoice: Invoice): InvoiceStatus => {
 };
 
 
-const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUser, onAddInvoice, onUpdateInvoice, projects }) => {
+const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUser, onAddInvoice, onUpdateInvoice, projects, onOpenNewInvoice, onOpenInvoiceDetails }) => {
     const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
-    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
     const getClient = (clientId: string) => clients.find(c => c.id === clientId) || null;
     
@@ -60,18 +57,6 @@ const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUse
         }
         return invoice.effectiveStatus === statusFilter;
     }).sort((a,b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
-
-    const handleSave = (data: Omit<Invoice, 'id'>) => {
-        onAddInvoice(data);
-        setIsFormModalOpen(false);
-    };
-    
-    const handleViewDetails = (invoice: Invoice) => {
-        setSelectedInvoice(invoice);
-        setDetailsModalOpen(true);
-    };
-
-    const selectedClientForModal = selectedInvoice ? getClient(selectedInvoice.clientId) : null;
 
     return (
         <div className="p-4 md:p-8">
@@ -95,7 +80,7 @@ const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUse
                         ))}
                     </div>
                      {currentUser.role === UserRole.ADMIN && (
-                         <button onClick={() => setIsFormModalOpen(true)} className="flex-shrink-0 flex items-center justify-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300">
+                         <button onClick={onOpenNewInvoice} className="flex-shrink-0 flex items-center justify-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300">
                             <PlusIcon className="w-5 h-5 mr-2" />
                             Nouvelle Facture
                         </button>
@@ -138,7 +123,7 @@ const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUse
                                                     Marquer comme Payée
                                                 </button>
                                             )}
-                                            <button onClick={() => handleViewDetails(invoice)} className="font-semibold text-telya-green hover:text-telya-green/80 text-xs">
+                                            <button onClick={() => onOpenInvoiceDetails(invoice)} className="font-semibold text-telya-green hover:text-telya-green/80 text-xs">
                                                 Détails
                                             </button>
                                         </div>
@@ -157,21 +142,6 @@ const BillingView: React.FC<BillingViewProps> = ({ invoices, clients, currentUse
                     </table>
                 </div>
             </div>
-
-            <InvoiceForm 
-                isOpen={isFormModalOpen}
-                onClose={() => setIsFormModalOpen(false)}
-                onSave={handleSave}
-                clients={clients}
-                projects={projects}
-            />
-            <InvoiceDetailsModal
-                isOpen={detailsModalOpen}
-                onClose={() => setDetailsModalOpen(false)}
-                invoice={selectedInvoice}
-                client={selectedClientForModal}
-                projectName={selectedInvoice?.projectId ? projects.find(p => p.id === selectedInvoice.projectId)?.name : undefined}
-            />
         </div>
     );
 };

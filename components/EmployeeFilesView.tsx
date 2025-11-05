@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ProjectFile, Project, User } from '../types';
 import { FilesIcon, FileTextIcon, CameraIcon, DownloadIcon, PlusIcon } from './icons';
-import EmployeeFileUploadModal from './forms/EmployeeFileUploadModal';
 
 interface EmployeeFilesViewProps {
     currentUser: User;
     files: ProjectFile[];
     projects: Project[];
     onAddFile: (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => void;
+    onOpenUploadModal: () => void;
 }
 
 const getFileIcon = (type: ProjectFile['type']) => {
@@ -33,9 +33,7 @@ const simulateFileDownload = (filename: string, content: string) => {
     document.body.removeChild(element);
 };
 
-const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, files, projects, onAddFile }) => {
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-    
+const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, files, projects, onAddFile, onOpenUploadModal }) => {
     const myProjects = projects.filter(p => p.assignedEmployeeIds.includes(currentUser.id));
     const myProjectIds = myProjects.map(p => p.id);
     
@@ -52,7 +50,7 @@ const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, file
             <div className="flex justify-between items-center mb-6">
                 <h2 className="font-display text-4xl tracking-wide text-white">Fichiers de Projet</h2>
                  <button 
-                    onClick={() => setIsUploadModalOpen(true)} 
+                    onClick={onOpenUploadModal} 
                     className="flex items-center bg-telya-green hover:bg-emerald-500 text-slate-900 font-bold py-2 px-4 rounded-lg shadow-lg shadow-telya-green/20 hover:shadow-telya-green/30 transition-all duration-300 transform hover:scale-105"
                 >
                     <PlusIcon className="w-5 h-5 mr-2" />
@@ -101,12 +99,6 @@ const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, file
                     </div>
                 )}
             </div>
-            <EmployeeFileUploadModal
-                isOpen={isUploadModalOpen}
-                onClose={() => setIsUploadModalOpen(false)}
-                onUpload={onAddFile}
-                projects={myProjects}
-            />
         </div>
     );
 };
