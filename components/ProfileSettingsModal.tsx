@@ -53,7 +53,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
     const updatedData: Partial<User> = {};
     if (name !== currentUser.name) updatedData.name = name;
     if (email !== currentUser.email) updatedData.email = email;
-    if (currentUser.role === UserRole.EMPLOYEE && position !== (currentUser.position || '')) updatedData.position = position;
+    if ((currentUser.role === UserRole.EMPLOYEE || currentUser.role === UserRole.ADMIN) && position !== (currentUser.position || '')) updatedData.position = position;
     if (avatar !== currentUser.avatar) updatedData.avatar = avatar;
 
     if (Object.keys(updatedData).length > 0) {
@@ -114,7 +114,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
               required
             />
           </div>
-          {currentUser.role === UserRole.EMPLOYEE && (
+          {(currentUser.role === UserRole.EMPLOYEE || currentUser.role === UserRole.ADMIN) && (
             <div>
               <label htmlFor="position" className="block text-sm font-medium text-slate-300 mb-1">Poste</label>
               <input

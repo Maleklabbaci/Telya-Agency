@@ -39,13 +39,12 @@ interface ProjectDetailsProps {
   activeTimer: ActiveTimer | null;
   onStartTimer: (projectId: string) => void;
   onStopTimerAndLog: (logData: Omit<TimeLog, 'id' | 'employeeId'>) => void;
-  onAddFile: (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => void;
   onUpdateTask: (task: Task) => void;
   onOpenTimeLogForm: (hours?: number) => void;
   onOpenFileUploadModal: () => void;
 }
 
-const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, tasks, timeLogs, files, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog, onAddFile, onUpdateTask, onOpenTimeLogForm, onOpenFileUploadModal }) => {
+const ProjectDetails: React.FC<ProjectDetailsProps> = ({ project, client, team, tasks, timeLogs, files, currentUser, users, onBack, onViewChat, activeTimer, onStartTimer, onStopTimerAndLog, onUpdateTask, onOpenTimeLogForm, onOpenFileUploadModal }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   
   const isEmployeeOnProject = currentUser.role === UserRole.EMPLOYEE && project.assignedEmployeeIds.includes(currentUser.id);

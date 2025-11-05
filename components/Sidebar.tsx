@@ -145,6 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, activeView, setActiveVie
     { view: 'billing', label: 'Facturation', icon: BillingIcon },
     { view: 'ai-insights', label: 'Insights IA', icon: AiIcon },
     { view: 'files', label: 'Fichiers', icon: FilesIcon },
+    { view: 'profile', label: 'Profil', icon: ProfileIcon },
     { view: 'settings', label: 'Paramètres', icon: SettingsIcon },
     { view: 'activity-log', label: "Journal d'activité", icon: ActivityLogIcon },
   ];

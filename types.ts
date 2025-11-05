@@ -10,11 +10,11 @@ export type View =
   // Admin
   | 'dashboard' | 'projects' | 'team' | 'messages' | 'reports' | 'billing' | 'ai-insights' | 'files' | 'settings' | 'activity-log'
   // Employee
-  | 'my-projects' | 'my-tasks' | 'calendar' | 'time-tracking' | 'project-files' | 'my-performance' | 'profile'
+  | 'my-projects' | 'my-tasks' | 'calendar' | 'time-tracking' | 'project-files' | 'my-performance'
   // Client
-  | 'client-dashboard' | 'client-projects' | 'support' | 'deliverables' | 'client-billing' | 'feedback' | 'client-profile'
-  // Common
-  | 'login';
+  | 'client-dashboard' | 'client-projects' | 'support' | 'deliverables' | 'client-billing' | 'feedback'
+  // Common / Profile
+  | 'login' | 'profile' | 'client-profile';
 
 
 export enum ProjectStatus {

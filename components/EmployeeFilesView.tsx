@@ -6,7 +6,6 @@ interface EmployeeFilesViewProps {
     currentUser: User;
     files: ProjectFile[];
     projects: Project[];
-    onAddFile: (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => void;
     onOpenUploadModal: () => void;
 }
 
@@ -33,7 +32,7 @@ const simulateFileDownload = (filename: string, content: string) => {
     document.body.removeChild(element);
 };
 
-const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, files, projects, onAddFile, onOpenUploadModal }) => {
+const EmployeeFilesView: React.FC<EmployeeFilesViewProps> = ({ currentUser, files, projects, onOpenUploadModal }) => {
     const myProjects = projects.filter(p => p.assignedEmployeeIds.includes(currentUser.id));
     const myProjectIds = myProjects.map(p => p.id);
     

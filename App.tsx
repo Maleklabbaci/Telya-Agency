@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, View, Project, Client, ActivityLog, TimeLog, ChatMessage, ActiveTimer, ToastNotificationType, Invoice, ProjectFile, Task, Feedback, PanelNotification } from './types';
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_CLIENTS, MOCK_ACTIVITY_LOG, MOCK_TIME_LOGS, MOCK_CHAT_MESSAGES, MOCK_INVOICES, MOCK_FILES, MOCK_TASKS, MOCK_FEEDBACK, MOCK_PANEL_NOTIFICATIONS } from './constants';
@@ -34,6 +36,7 @@ import ClientDeliverablesView from './components/ClientDeliverablesView';
 import ClientBillingView from './components/ClientBillingView';
 import ClientFeedbackView from './components/ClientFeedbackView';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { CLIENTS_EMPLOYEES_COLUMN, USERS_CLIENTS_COLUMN } from './supabaseMapping';
 import InvoiceForm from './components/forms/InvoiceForm';
 import ProjectForm from './components/forms/ProjectForm';
 import TaskForm from './components/forms/TaskForm';
@@ -144,7 +147,7 @@ const AppContent: React.FC = () => {
 
                 if (usersData && usersData.length > 0) {
                     console.log("Données Supabase chargées avec succès.");
-                    const [projectsRes, clientsRes, activityLogRes, timeLogsRes, chatMessagesRes, invoicesRes, filesRes, tasksRes, feedbackRes, panelNotificationsRes] = await Promise.all([
+                    const [projectsRes, clientsRes, activityLogRes, timeLogsRes, chatMessagesRes, invoicesRes, filesRes, tasksRes, feedbackRes, panelNotificationsRes, projectEmployeesRes] = await Promise.all([
                         supabase.from('projects').select('*'),
                         supabase.from('clients').select('*'),
                         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }),
@@ -155,19 +158,22 @@ const AppContent: React.FC = () => {
                         supabase.from('tasks').select('*'),
                         supabase.from('feedback').select('*'),
                         supabase.from('panel_notifications').select('*').order('timestamp', { ascending: false }),
+                        supabase.from('project_employees').select('project_id, user_id'),
                     ]);
                     
                     setUsers(usersData.map((u: any) => ({
                         ...u,
-                        assignedClientIds: u.assignedClientIds || [],
+                        assignedClientIds: u[USERS_CLIENTS_COLUMN] || [],
                     })));
 
-                    if (projectsRes.data) {
+                    if (projectsRes.data && projectEmployeesRes.data) {
                         setProjects(projectsRes.data.map((p: any) => ({
                             ...p,
                             clientId: p.client_id,
                             dueDate: p.due_date,
-                            assignedEmployeeIds: p.assignedEmployeeIds || [],
+                            assignedEmployeeIds: projectEmployeesRes.data
+                                .filter((pe: any) => pe.project_id === p.id)
+                                .map((pe: any) => pe.user_id),
                         })));
                     }
                     if (clientsRes.data) {
@@ -176,7 +182,7 @@ const AppContent: React.FC = () => {
                             companyName: c.company_name,
                             contactName: c.contact_name,
                             contactEmail: c.contact_email,
-                            assignedEmployeeIds: c.assignedEmployeeIds || [],
+                            assignedEmployeeIds: c[CLIENTS_EMPLOYEES_COLUMN] || [],
                         })));
                     }
                     if (activityLogRes.data) {
@@ -278,9 +284,27 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
-            const insertData = { id: optimisticProject.id, name: optimisticProject.name, client_id: optimisticProject.clientId, status: optimisticProject.status, description: optimisticProject.description, due_date: optimisticProject.dueDate };
+            const { assignedEmployeeIds, ...coreProjectData } = projectData;
+            const insertData = { 
+                id: optimisticProject.id, 
+                name: coreProjectData.name, 
+                client_id: coreProjectData.clientId, 
+                status: coreProjectData.status, 
+                description: coreProjectData.description, 
+                due_date: coreProjectData.dueDate, 
+            };
             const { data, error } = await supabase.from('projects').insert(insertData).select().single();
             if (error) throw error;
+            
+            if (assignedEmployeeIds && assignedEmployeeIds.length > 0) {
+                const projectEmployeeRows = assignedEmployeeIds.map(userId => ({
+                    project_id: data.id,
+                    user_id: userId
+                }));
+                const { error: joinError } = await supabase.from('project_employees').insert(projectEmployeeRows);
+                if (joinError) throw joinError;
+            }
+
             const confirmedData = { ...optimisticProject, ...data, clientId: data.client_id, dueDate: data.due_date };
             setProjects(prev => prev.map(item => item.id === newId ? confirmedData : item));
             if (currentUser) addLogEntry(currentUser.id, 'a ajouté le projet', data.name);
@@ -302,9 +326,29 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
-            const updateData = { name: updatedProject.name, client_id: updatedProject.clientId, status: updatedProject.status, description: updatedProject.description, due_date: updatedProject.dueDate };
-            const { error } = await supabase.from('projects').update(updateData).eq('id', updatedProject.id);
-            if (error) throw error;
+            const { assignedEmployeeIds, ...coreProjectData } = updatedProject;
+            const updateData = { 
+                name: coreProjectData.name, 
+                client_id: coreProjectData.clientId, 
+                status: coreProjectData.status, 
+                description: coreProjectData.description, 
+                due_date: coreProjectData.dueDate,
+            };
+            const { error: projectUpdateError } = await supabase.from('projects').update(updateData).eq('id', updatedProject.id);
+            if (projectUpdateError) throw projectUpdateError;
+
+            const { error: deleteError } = await supabase.from('project_employees').delete().eq('project_id', updatedProject.id);
+            if (deleteError) throw deleteError;
+
+            if (assignedEmployeeIds && assignedEmployeeIds.length > 0) {
+                const projectEmployeeRows = assignedEmployeeIds.map(userId => ({
+                    project_id: updatedProject.id,
+                    user_id: userId
+                }));
+                const { error: insertError } = await supabase.from('project_employees').insert(projectEmployeeRows);
+                if (insertError) throw insertError;
+            }
+            
             if (currentUser) addLogEntry(currentUser.id, 'a mis à jour le projet', updatedProject.name);
             addNotification({ type: ToastNotificationType.INFO, title: "Projet Mis à Jour", message: `Le projet "${updatedProject.name}" a été mis à jour.` });
         } catch (error: any) {
@@ -319,6 +363,9 @@ const AppContent: React.FC = () => {
         if (isDemoMode) return;
         if (!supabase) return;
         try {
+            const { error: joinError } = await supabase.from('project_employees').delete().eq('project_id', id);
+            if (joinError) throw joinError;
+            
             const { error } = await supabase.from('projects').delete().eq('id', id);
             if (error) throw error;
         } catch (error: any) {
@@ -340,7 +387,14 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
-            const insertData = { id: newClient.id, company_name: newClient.companyName, contact_name: newClient.contactName, contact_email: newClient.contactEmail, status: newClient.status };
+            const insertData = { 
+                id: newClient.id, 
+                company_name: newClient.companyName, 
+                contact_name: newClient.contactName, 
+                contact_email: newClient.contactEmail, 
+                status: newClient.status, 
+                [CLIENTS_EMPLOYEES_COLUMN]: newClient.assignedEmployeeIds 
+            };
             const { data, error } = await supabase.from('clients').insert(insertData).select().single();
             if (error) throw error;
             const confirmedClientData = { id: data.id, companyName: data.company_name, contactName: data.contact_name, contactEmail: data.contact_email, status: data.status };
@@ -364,7 +418,13 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
-            const updateData = { company_name: updatedClient.companyName, contact_name: updatedClient.contactName, contact_email: updatedClient.contactEmail, status: updatedClient.status };
+            const updateData = { 
+                company_name: updatedClient.companyName, 
+                contact_name: updatedClient.contactName, 
+                contact_email: updatedClient.contactEmail, 
+                status: updatedClient.status, 
+                [CLIENTS_EMPLOYEES_COLUMN]: updatedClient.assignedEmployeeIds 
+            };
             const { error } = await supabase.from('clients').update(updateData).eq('id', updatedClient.id);
             if (error) throw error;
             if(currentUser) addLogEntry(currentUser.id, "a mis à jour le client", updatedClient.companyName);
@@ -388,7 +448,15 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
         
         try {
-            const insertData = { id: newUser.id, name: newUser.name, email: newUser.email, avatar: newUser.avatar, role: newUser.role, position: newUser.position };
+            const insertData = { 
+                id: newUser.id, 
+                name: newUser.name, 
+                email: newUser.email, 
+                avatar: newUser.avatar, 
+                role: newUser.role, 
+                position: newUser.position, 
+                [USERS_CLIENTS_COLUMN]: newUser.assignedClientIds 
+            };
             const { data, error } = await supabase.from('users').insert(insertData).select().single();
             if (error) throw error;
             setUsers(prev => prev.map(u => u.id === newUserId ? { ...u, ...data } : u));
@@ -412,7 +480,14 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
         
         try {
-            const updateData = { name: updatedUser.name, email: updatedUser.email, avatar: updatedUser.avatar, role: updatedUser.role, position: updatedUser.position };
+            const updateData = { 
+                name: updatedUser.name, 
+                email: updatedUser.email, 
+                avatar: updatedUser.avatar, 
+                role: updatedUser.role, 
+                position: updatedUser.position, 
+                [USERS_CLIENTS_COLUMN]: updatedUser.assignedClientIds 
+            };
             const { error } = await supabase.from('users').update(updateData).eq('id', updatedUser.id);
             if (error) throw error;
             if(currentUser) addLogEntry(currentUser.id, "a mis à jour le profil", updatedUser.name);
@@ -447,10 +522,11 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
         
         try {
-            const projectsToUpdate = previousProjects.filter(p => p.assignedEmployeeIds.includes(id));
-            await Promise.all(projectsToUpdate.map(p => supabase.from('projects').update({ assignedEmployeeIds: p.assignedEmployeeIds.filter(empId => empId !== id) }).eq('id', p.id)));
+            const { error: projectAssignmentsError } = await supabase.from('project_employees').delete().eq('user_id', id);
+            if (projectAssignmentsError) throw projectAssignmentsError;
+
             const clientsToUpdate = previousClients.filter(c => c.assignedEmployeeIds.includes(id));
-            await Promise.all(clientsToUpdate.map(c => supabase.from('clients').update({ assignedEmployeeIds: c.assignedEmployeeIds.filter(empId => empId !== id) }).eq('id', c.id)));
+            await Promise.all(clientsToUpdate.map(c => supabase.from('clients').update({ [CLIENTS_EMPLOYEES_COLUMN]: c.assignedEmployeeIds.filter(empId => empId !== id) }).eq('id', c.id)));
             const { error } = await supabase.from('users').delete().eq('id', id);
             if (error) throw error;
             if(currentUser) addLogEntry(currentUser.id, `a supprimé l'utilisateur`, userToDelete.name);
@@ -651,6 +727,28 @@ const AppContent: React.FC = () => {
         await supabase.from('activity_logs').insert({ user_id: insertData.userId, action: insertData.action, details: insertData.details, timestamp: insertData.timestamp.toISOString() });
     };
 
+    const handleAddFile = (fileData: Omit<ProjectFile, 'id' | 'uploadedBy' | 'lastModified'>) => {
+        if (!currentUser) return;
+
+        const newFile: ProjectFile = {
+            ...fileData,
+            id: crypto.randomUUID(),
+            uploadedBy: currentUser.id,
+            lastModified: new Date(),
+        };
+
+        setFiles(prev => [...prev, newFile]);
+
+        const projectName = projects.find(p => p.id === newFile.projectId)?.name || 'un projet';
+        addNotification({
+            type: ToastNotificationType.SUCCESS,
+            title: "Fichier ajouté",
+            message: `Le fichier "${newFile.name}" a été ajouté au projet ${projectName}.`
+        });
+
+        addLogEntry(currentUser.id, "a ajouté le fichier", newFile.name);
+    };
+
     const handleLogin = (user: User) => setCurrentUser(user);
     const handleLogout = () => { setCurrentUser(null); setActiveTimer(null); };
 
@@ -732,7 +830,7 @@ const AppContent: React.FC = () => {
                 tasks={tasks.filter(t => t.projectId === detailedProject.id)} timeLogs={timeLogs} files={files.filter(f => f.projectId === detailedProject.id)}
                 currentUser={currentUser} users={users} onBack={handleBack} onViewChat={handleViewChat} activeTimer={activeTimer}
                 onStartTimer={(pid) => setActiveTimer({ projectId: pid, employeeId: currentUser.id, startTime: Date.now() })}
-                onStopTimerAndLog={console.log} onAddFile={console.log} onUpdateTask={handleUpdateTask}
+                onStopTimerAndLog={console.log} onUpdateTask={handleUpdateTask}
                 onOpenTimeLogForm={handleOpenTimeLogForm} onOpenFileUploadModal={() => setIsProjectFileUploadOpen(true)}
             />;
         }
@@ -768,7 +866,7 @@ const AppContent: React.FC = () => {
                     case 'calendar': return <EmployeeCalendarView currentUser={currentUser} projects={projects} />;
                     case 'messages': return <InboxView currentUser={currentUser} projects={projects} clients={clients} users={users} chatMessages={chatMessages} onSendMessage={handleSendMessage} onConversationSelect={() => {}}/>;
                     case 'time-tracking': return <EmployeeTimeTrackingView currentUser={currentUser} timeLogs={timeLogs} projects={projects} />;
-                    case 'project-files': return <EmployeeFilesView currentUser={currentUser} files={files} projects={projects} onAddFile={console.log} onOpenUploadModal={() => setIsEmployeeFileUploadOpen(true)} />;
+                    case 'project-files': return <EmployeeFilesView currentUser={currentUser} files={files} projects={projects} onOpenUploadModal={() => setIsEmployeeFileUploadOpen(true)} />;
                     case 'my-performance': return <EmployeePerformanceView currentUser={currentUser} timeLogs={timeLogs} projects={projects} tasks={tasks} />;
                     default: return <ViewPlaceholder title={getPageTitle(activeView)} />;
                 }
@@ -824,9 +922,9 @@ const AppContent: React.FC = () => {
        
             <TimeLogForm isOpen={isTimeLogFormOpen} onClose={() => setIsTimeLogFormOpen(false)} onSave={console.log} initialHours={hoursForTimeLog} />
 
-            <FileUploadModal isOpen={isProjectFileUploadOpen} onClose={() => setIsProjectFileUploadOpen(false)} onUpload={console.log} />
+            <FileUploadModal isOpen={isProjectFileUploadOpen} onClose={() => setIsProjectFileUploadOpen(false)} onUpload={(fileData) => { if (detailedProject) { handleAddFile({ ...fileData, projectId: detailedProject.id }); } }} />
             
-            <EmployeeFileUploadModal isOpen={isEmployeeFileUploadOpen} onClose={() => setIsEmployeeFileUploadOpen(false)} onUpload={console.log} projects={projects.filter(p => currentUser && p.assignedEmployeeIds.includes(currentUser.id))} />
+            <EmployeeFileUploadModal isOpen={isEmployeeFileUploadOpen} onClose={() => setIsEmployeeFileUploadOpen(false)} onUpload={handleAddFile} projects={projects.filter(p => currentUser && p.assignedEmployeeIds.includes(currentUser.id))} />
             
             <ConfirmationModal isOpen={isDeleteAccountModalOpen} onClose={() => setIsDeleteAccountModalOpen(false)} onConfirm={handleLogout} title="Supprimer le compte" message="Ceci est une démo. Cliquer sur Supprimer vous déconnectera." />
 
