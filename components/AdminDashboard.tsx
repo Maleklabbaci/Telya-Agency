@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Project, ActivityLog, ProjectStatus, Invoice, Task } from '../types';
+import { User, Project, ActivityLog, ProjectStatus, Invoice, Task, Client } from '../types';
 import { BriefcaseIcon, DollarSignIcon, CheckCircleIcon, UsersIcon, BellIcon, ActivityLogIcon, TeamIcon, LightbulbIcon, PauseIcon } from './icons';
 
 interface AdminDashboardProps {
@@ -9,8 +9,10 @@ interface AdminDashboardProps {
     activityLog: ActivityLog[];
     invoices: Invoice[];
     tasks: Task[];
+    clients: Client[];
     onUpdateInvoice: (invoice: Invoice) => void;
     onViewProjectDetails: (project: Project) => void;
+    onOpenInvoiceDetails: (invoice: Invoice) => void;
 }
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
@@ -40,7 +42,7 @@ const timeSince = (date: Date): string => {
     return `à l'instant`;
 };
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, projects, activityLog, invoices, tasks, onUpdateInvoice, onViewProjectDetails }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, projects, activityLog, invoices, tasks, clients, onUpdateInvoice, onViewProjectDetails, onOpenInvoiceDetails }) => {
     
     const getGreeting = () => {
         const hours = new Date().getHours();
@@ -74,19 +76,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, pro
         return acc;
     }, {} as Record<string, number>);
     
-    const handleValidateInvoice = () => {
-        const invoiceToValidate = invoices.find(inv => inv.id === 'inv-002');
-        if (invoiceToValidate) {
-            onUpdateInvoice({ ...invoiceToValidate, status: 'Paid' });
-        }
-    };
+    const overdueProjects = projects.filter(p => 
+        p.dueDate && 
+        new Date(p.dueDate) < new Date() && 
+        p.status !== ProjectStatus.COMPLETED
+    );
 
-    const handleViewOverdueProject = () => {
-        const projectToView = projects.find(p => p.name.includes('Innovatech'));
-        if (projectToView) {
-            onViewProjectDetails(projectToView);
-        }
-    };
+    const draftInvoices = invoices.filter(i => i.status === 'Draft');
+    
+    const overdueInvoices = invoices.filter(i => {
+        if (i.status === 'Overdue') return true;
+        if (i.status === 'Sent' && new Date(i.dueDate) < new Date()) return true;
+        return false;
+    });
 
 
     return (
@@ -113,14 +115,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, users, pro
                     <div className="bg-slate-900/50 p-6 rounded-2xl border border-[var(--border-color)]">
                         <h3 className="font-display text-xl tracking-wide text-white flex items-center"><BellIcon className="w-6 h-6 mr-3 text-telya-green"/>Alertes & Actions Rapides</h3>
                         <div className="mt-4 space-y-3">
-                            <div className="bg-yellow-500/10 p-3 rounded-lg flex justify-between items-center">
-                                <p className="text-sm text-yellow-300">Le projet <span className="font-bold">Innovatech</span> est en retard de 2 jours.</p>
-                                <button onClick={handleViewOverdueProject} className="text-xs bg-yellow-500/20 text-white font-semibold px-3 py-1 rounded-md hover:bg-yellow-500/40 transition-colors">Voir le projet</button>
-                            </div>
-                             <div className="bg-blue-500/10 p-3 rounded-lg flex justify-between items-center">
-                                <p className="text-sm text-blue-300">Nouvelle facture de <span className="font-bold">Quantum Corp</span> à valider.</p>
-                                <button onClick={handleValidateInvoice} className="text-xs bg-blue-500/20 text-white font-semibold px-3 py-1 rounded-md hover:bg-blue-500/40 transition-colors">Valider</button>
-                            </div>
+                           {overdueProjects.length === 0 && draftInvoices.length === 0 && overdueInvoices.length === 0 ? (
+                                <div className="text-center py-4">
+                                     <p className="text-sm text-slate-400">Aucune alerte pour le moment. Tout est en ordre !</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {overdueProjects.map(project => {
+                                        const daysOverdue = Math.max(1, Math.floor((new Date().getTime() - new Date(project.dueDate!).getTime()) / (1000 * 3600 * 24)));
+                                        return (
+                                            <div key={`proj-alert-${project.id}`} className="bg-yellow-500/10 p-3 rounded-lg flex justify-between items-center">
+                                                <p className="text-sm text-yellow-300">Le projet <span className="font-bold">{project.name}</span> est en retard de {daysOverdue} jour{daysOverdue > 1 ? 's' : ''}.</p>
+                                                <button onClick={() => onViewProjectDetails(project)} className="text-xs bg-yellow-500/20 text-white font-semibold px-3 py-1 rounded-md hover:bg-yellow-500/40 transition-colors">Voir le projet</button>
+                                            </div>
+                                        );
+                                    })}
+                                    {overdueInvoices.map(invoice => {
+                                        const clientName = clients.find(c => c.id === invoice.clientId)?.companyName || 'Inconnu';
+                                        return (
+                                            <div key={`inv-alert-overdue-${invoice.id}`} className="bg-red-500/10 p-3 rounded-lg flex justify-between items-center">
+                                                <p className="text-sm text-red-300">Facture pour <span className="font-bold">{clientName}</span> en retard.</p>
+                                                <button onClick={() => onOpenInvoiceDetails(invoice)} className="text-xs bg-red-500/20 text-white font-semibold px-3 py-1 rounded-md hover:bg-red-500/40 transition-colors">Voir la facture</button>
+                                            </div>
+                                        )
+                                    })}
+                                    {draftInvoices.map(invoice => {
+                                        const clientName = clients.find(c => c.id === invoice.clientId)?.companyName || 'Inconnu';
+                                        return (
+                                            <div key={`inv-alert-draft-${invoice.id}`} className="bg-blue-500/10 p-3 rounded-lg flex justify-between items-center">
+                                                <p className="text-sm text-blue-300">Facture brouillon pour <span className="font-bold">{clientName}</span> prête à être envoyée.</p>
+                                                <button onClick={() => onUpdateInvoice({ ...invoice, status: 'Sent' })} className="text-xs bg-blue-500/20 text-white font-semibold px-3 py-1 rounded-md hover:bg-blue-500/40 transition-colors">Envoyer</button>
+                                            </div>
+                                        );
+                                    })}
+                                </>
+                            )}
                         </div>
                     </div>
 
