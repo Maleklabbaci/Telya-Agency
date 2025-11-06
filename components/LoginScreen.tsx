@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, Client } from '../types';
 import { ShieldCheckIcon, BriefcaseIcon, ClientsIcon, ArrowUturnLeftIcon } from './icons';
 
 interface LoginScreenProps {
     users: User[];
+    clients: Client[];
     onLogin: (user: User) => void;
 }
 
@@ -56,7 +57,7 @@ const RoleCard: React.FC<{
     );
 };
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ users, clients, onLogin }) => {
     const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
     const [credential, setCredential] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
@@ -98,20 +99,49 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     const handleUserLogin = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedRole || !credential.trim()) return;
-
-        const user = users.find(u =>
-            u.role === selectedRole &&
-            u.email.toLowerCase() === credential.trim().toLowerCase()
-        );
         
-        if (user) {
-            onLogin(user);
+        const trimmedCredential = credential.trim().toLowerCase();
+
+        if (selectedRole === UserRole.CLIENT) {
+            const clientProfile = clients.find(c => c.contactEmail.toLowerCase() === trimmedCredential);
+
+            if (clientProfile) {
+                let user = users.find(u => u.email.toLowerCase() === trimmedCredential && u.role === UserRole.CLIENT);
+                if (!user) {
+                    // Create a user object on the fly if one doesn't exist in the users table
+                    user = {
+                        id: clientProfile.id,
+                        name: clientProfile.contactName,
+                        email: clientProfile.contactEmail,
+                        avatar: `https://i.pravatar.cc/150?u=${clientProfile.id}`,
+                        role: UserRole.CLIENT,
+                        activityStatus: 'online',
+                    };
+                }
+                onLogin(user);
+            } else {
+                 setError('Adresse e-mail incorrecte. Veuillez réessayer.');
+                const form = (e.target as HTMLFormElement);
+                form.classList.remove('shake');
+                void form.offsetWidth; // trigger reflow
+                form.classList.add('shake');
+            }
         } else {
-            setError('Adresse e-mail incorrecte. Veuillez réessayer.');
-            const form = (e.target as HTMLFormElement);
-            form.classList.remove('shake');
-            void form.offsetWidth; // trigger reflow
-            form.classList.add('shake');
+            // Logic for Admin and Employee
+            const user = users.find(u =>
+                u.role === selectedRole &&
+                u.email.toLowerCase() === trimmedCredential
+            );
+            
+            if (user) {
+                onLogin(user);
+            } else {
+                setError('Adresse e-mail incorrecte. Veuillez réessayer.');
+                const form = (e.target as HTMLFormElement);
+                form.classList.remove('shake');
+                void form.offsetWidth; // trigger reflow
+                form.classList.add('shake');
+            }
         }
     };
 

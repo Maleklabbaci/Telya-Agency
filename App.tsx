@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, View, Project, Client, ActivityLog, TimeLog, ChatMessage, ActiveTimer, ToastNotificationType, Invoice, ProjectFile, Task, Feedback, PanelNotification } from './types';
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_CLIENTS, MOCK_ACTIVITY_LOG, MOCK_TIME_LOGS, MOCK_CHAT_MESSAGES, MOCK_INVOICES, MOCK_FILES, MOCK_TASKS, MOCK_FEEDBACK, MOCK_PANEL_NOTIFICATIONS } from './constants';
@@ -36,7 +38,6 @@ import ClientDeliverablesView from './components/ClientDeliverablesView';
 import ClientBillingView from './components/ClientBillingView';
 import ClientFeedbackView from './components/ClientFeedbackView';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { CLIENTS_EMPLOYEES_COLUMN, USERS_CLIENTS_COLUMN } from './supabaseMapping';
 import InvoiceForm from './components/forms/InvoiceForm';
 import ProjectForm from './components/forms/ProjectForm';
 import TaskForm from './components/forms/TaskForm';
@@ -147,7 +148,7 @@ const AppContent: React.FC = () => {
 
                 if (usersData && usersData.length > 0) {
                     console.log("Données Supabase chargées avec succès.");
-                    const [projectsRes, clientsRes, activityLogRes, timeLogsRes, chatMessagesRes, invoicesRes, filesRes, tasksRes, feedbackRes, panelNotificationsRes, projectEmployeesRes] = await Promise.all([
+                    const [projectsRes, clientsRes, activityLogRes, timeLogsRes, chatMessagesRes, invoicesRes, filesRes, tasksRes, feedbackRes, panelNotificationsRes, projectEmployeesRes, clientEmployeesRes] = await Promise.all([
                         supabase.from('projects').select('*'),
                         supabase.from('clients').select('*'),
                         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }),
@@ -159,12 +160,19 @@ const AppContent: React.FC = () => {
                         supabase.from('feedback').select('*'),
                         supabase.from('panel_notifications').select('*').order('timestamp', { ascending: false }),
                         supabase.from('project_employees').select('project_id, user_id'),
+                        supabase.from('client_employees').select('client_id, user_id'),
                     ]);
                     
-                    setUsers(usersData.map((u: any) => ({
-                        ...u,
-                        assignedClientIds: u[USERS_CLIENTS_COLUMN] || [],
-                    })));
+                    if (usersData && clientEmployeesRes.data) {
+                        setUsers(usersData.map((u: any) => ({
+                            ...u,
+                            assignedClientIds: clientEmployeesRes.data
+                                .filter((ce: any) => ce.user_id === u.id)
+                                .map((ce: any) => ce.client_id),
+                        })));
+                    } else if (usersData) {
+                        setUsers(usersData);
+                    }
 
                     if (projectsRes.data && projectEmployeesRes.data) {
                         setProjects(projectsRes.data.map((p: any) => ({
@@ -176,13 +184,15 @@ const AppContent: React.FC = () => {
                                 .map((pe: any) => pe.user_id),
                         })));
                     }
-                    if (clientsRes.data) {
+                    if (clientsRes.data && clientEmployeesRes.data) {
                         setClients((clientsRes.data as any[]).map((c: any) => ({
                             ...c,
                             companyName: c.company_name,
                             contactName: c.contact_name,
                             contactEmail: c.contact_email,
-                            assignedEmployeeIds: c[CLIENTS_EMPLOYEES_COLUMN] || [],
+                            assignedEmployeeIds: clientEmployeesRes.data
+                                .filter((ce: any) => ce.client_id === c.id)
+                                .map((ce: any) => ce.user_id),
                         })));
                     }
                     if (activityLogRes.data) {
@@ -387,18 +397,28 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
+            const { assignedEmployeeIds, ...coreClientData } = newClient;
             const insertData = { 
-                id: newClient.id, 
-                company_name: newClient.companyName, 
-                contact_name: newClient.contactName, 
-                contact_email: newClient.contactEmail, 
-                status: newClient.status, 
-                [CLIENTS_EMPLOYEES_COLUMN]: newClient.assignedEmployeeIds 
+                id: coreClientData.id, 
+                company_name: coreClientData.companyName, 
+                contact_name: coreClientData.contactName, 
+                contact_email: coreClientData.contactEmail, 
+                status: coreClientData.status,
             };
             const { data, error } = await supabase.from('clients').insert(insertData).select().single();
             if (error) throw error;
-            const confirmedClientData = { id: data.id, companyName: data.company_name, contactName: data.contact_name, contactEmail: data.contact_email, status: data.status };
-            setClients(prev => prev.map(c => c.id === newId ? { ...c, ...confirmedClientData } : c));
+            
+            if (assignedEmployeeIds && assignedEmployeeIds.length > 0) {
+                const clientEmployeeRows = assignedEmployeeIds.map(userId => ({
+                    client_id: data.id,
+                    user_id: userId
+                }));
+                const { error: joinError } = await supabase.from('client_employees').insert(clientEmployeeRows);
+                if (joinError) throw joinError;
+            }
+
+            const confirmedClientData = { id: data.id, companyName: data.company_name, contactName: data.contact_name, contactEmail: data.contact_email, status: data.status, assignedEmployeeIds };
+            setClients(prev => prev.map(c => c.id === newId ? confirmedClientData : c));
             if (currentUser) addLogEntry(currentUser.id, `a ajouté un client`, newClient.companyName);
             addNotification({type: ToastNotificationType.SUCCESS, title: 'Client ajouté', message: `Le client ${newClient.companyName} a été ajouté.`});
         } catch (error: any) {
@@ -418,15 +438,28 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
 
         try {
+            const { assignedEmployeeIds, ...coreClientData } = updatedClient;
             const updateData = { 
-                company_name: updatedClient.companyName, 
-                contact_name: updatedClient.contactName, 
-                contact_email: updatedClient.contactEmail, 
-                status: updatedClient.status, 
-                [CLIENTS_EMPLOYEES_COLUMN]: updatedClient.assignedEmployeeIds 
+                company_name: coreClientData.companyName, 
+                contact_name: coreClientData.contactName, 
+                contact_email: coreClientData.contactEmail, 
+                status: coreClientData.status,
             };
-            const { error } = await supabase.from('clients').update(updateData).eq('id', updatedClient.id);
-            if (error) throw error;
+            const { error: clientUpdateError } = await supabase.from('clients').update(updateData).eq('id', updatedClient.id);
+            if (clientUpdateError) throw clientUpdateError;
+
+            const { error: deleteError } = await supabase.from('client_employees').delete().eq('client_id', updatedClient.id);
+            if (deleteError) throw deleteError;
+
+            if (assignedEmployeeIds && assignedEmployeeIds.length > 0) {
+                const clientEmployeeRows = assignedEmployeeIds.map(userId => ({
+                    client_id: updatedClient.id,
+                    user_id: userId
+                }));
+                const { error: insertError } = await supabase.from('client_employees').insert(clientEmployeeRows);
+                if (insertError) throw insertError;
+            }
+
             if(currentUser) addLogEntry(currentUser.id, "a mis à jour le client", updatedClient.companyName);
             addNotification({type: ToastNotificationType.INFO, title: 'Client Mis à Jour', message: `Le client ${updatedClient.companyName} a été mis à jour.`});
         } catch(error: any) {
@@ -435,9 +468,9 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleAddUser = async (userData: Omit<User, 'id' | 'avatar' | 'activityStatus' | 'assignedClientIds'>) => {
+    const handleAddUser = async (userData: Omit<User, 'id' | 'avatar' | 'activityStatus'>) => {
         const newUserId = crypto.randomUUID();
-        const newUser: User = { ...userData, id: newUserId, avatar: `https://i.pravatar.cc/150?u=${newUserId}`, activityStatus: 'offline', assignedClientIds: (userData as any).assignedClientIds || [] };
+        const newUser: User = { ...userData, id: newUserId, avatar: `https://i.pravatar.cc/150?u=${newUserId}`, activityStatus: 'offline' };
         const previousUsers = users;
         setUsers(prev => [...prev, newUser]);
 
@@ -448,18 +481,29 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
         
         try {
+            const { assignedClientIds, ...coreUserData } = newUser;
             const insertData = { 
-                id: newUser.id, 
-                name: newUser.name, 
-                email: newUser.email, 
-                avatar: newUser.avatar, 
-                role: newUser.role, 
-                position: newUser.position, 
-                [USERS_CLIENTS_COLUMN]: newUser.assignedClientIds 
+                id: coreUserData.id,
+                name: coreUserData.name, 
+                email: coreUserData.email, 
+                avatar: coreUserData.avatar, 
+                role: coreUserData.role, 
+                position: coreUserData.position, 
             };
             const { data, error } = await supabase.from('users').insert(insertData).select().single();
             if (error) throw error;
-            setUsers(prev => prev.map(u => u.id === newUserId ? { ...u, ...data } : u));
+    
+            if (assignedClientIds && assignedClientIds.length > 0) {
+                const clientEmployeeRows = assignedClientIds.map(clientId => ({
+                    user_id: data.id,
+                    client_id: clientId
+                }));
+                const { error: joinError } = await supabase.from('client_employees').insert(clientEmployeeRows);
+                if (joinError) throw joinError;
+            }
+    
+            const confirmedData = { ...newUser, ...data, assignedClientIds: assignedClientIds || [] };
+            setUsers(prev => prev.map(u => u.id === newUserId ? confirmedData : u));
             if (currentUser) addLogEntry(currentUser.id, `a ajouté un ${userData.role === UserRole.ADMIN ? 'administrateur' : 'employé'}`, data.name);
             addNotification({type: ToastNotificationType.SUCCESS, title: 'Utilisateur ajouté', message: `L'utilisateur ${data.name} a été ajouté.`});
         } catch (error: any) {
@@ -480,16 +524,29 @@ const AppContent: React.FC = () => {
         if (!supabase) return;
         
         try {
+            const { assignedClientIds, ...coreUserData } = updatedUser;
             const updateData = { 
-                name: updatedUser.name, 
-                email: updatedUser.email, 
-                avatar: updatedUser.avatar, 
-                role: updatedUser.role, 
-                position: updatedUser.position, 
-                [USERS_CLIENTS_COLUMN]: updatedUser.assignedClientIds 
+                name: coreUserData.name, 
+                email: coreUserData.email, 
+                avatar: coreUserData.avatar, 
+                role: coreUserData.role, 
+                position: coreUserData.position, 
             };
-            const { error } = await supabase.from('users').update(updateData).eq('id', updatedUser.id);
-            if (error) throw error;
+            const { error: userUpdateError } = await supabase.from('users').update(updateData).eq('id', updatedUser.id);
+            if (userUpdateError) throw userUpdateError;
+
+            const { error: deleteError } = await supabase.from('client_employees').delete().eq('user_id', updatedUser.id);
+            if (deleteError) throw deleteError;
+
+            if (assignedClientIds && assignedClientIds.length > 0) {
+                const clientEmployeeRows = assignedClientIds.map(clientId => ({
+                    user_id: updatedUser.id,
+                    client_id: clientId
+                }));
+                const { error: insertError } = await supabase.from('client_employees').insert(clientEmployeeRows);
+                if (insertError) throw insertError;
+            }
+
             if(currentUser) addLogEntry(currentUser.id, "a mis à jour le profil", updatedUser.name);
             addNotification({type: ToastNotificationType.INFO, title: 'Profil Mis à Jour', message: 'Votre profil a été mis à jour.'});
         } catch(error: any) {
@@ -525,8 +582,9 @@ const AppContent: React.FC = () => {
             const { error: projectAssignmentsError } = await supabase.from('project_employees').delete().eq('user_id', id);
             if (projectAssignmentsError) throw projectAssignmentsError;
 
-            const clientsToUpdate = previousClients.filter(c => c.assignedEmployeeIds.includes(id));
-            await Promise.all(clientsToUpdate.map(c => supabase.from('clients').update({ [CLIENTS_EMPLOYEES_COLUMN]: c.assignedEmployeeIds.filter(empId => empId !== id) }).eq('id', c.id)));
+            const { error: clientAssignmentsError } = await supabase.from('client_employees').delete().eq('user_id', id);
+            if (clientAssignmentsError) throw clientAssignmentsError;
+
             const { error } = await supabase.from('users').delete().eq('id', id);
             if (error) throw error;
             if(currentUser) addLogEntry(currentUser.id, `a supprimé l'utilisateur`, userToDelete.name);
@@ -564,6 +622,8 @@ const AppContent: React.FC = () => {
                 await supabase.from('projects').delete().in('id', projectIdsToDelete);
             }
             await supabase.from('invoices').delete().eq('clientId', id);
+            const { error: clientEmployeeError } = await supabase.from('client_employees').delete().eq('client_id', id);
+            if (clientEmployeeError) throw clientEmployeeError;
             const { error } = await supabase.from('clients').delete().eq('id', id);
             if (error) throw error;
             addNotification({ type: ToastNotificationType.ERROR, title: 'Client Supprimé', message: `Le client "${clientToDelete.companyName}" a été supprimé.` });
@@ -785,7 +845,7 @@ const AppContent: React.FC = () => {
     }
 
     if (!currentUser) {
-        return <LoginScreen users={users} onLogin={handleLogin} />;
+        return <LoginScreen users={users} clients={clients} onLogin={handleLogin} />;
     }
     
     const getPageTitle = (view: View): string => {
